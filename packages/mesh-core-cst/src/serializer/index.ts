@@ -5,6 +5,7 @@ import {
   BuilderData,
   NativeScript as CommonNativeScript,
   Data,
+  DEFAULT_PROTOCOL_PARAMETERS,
   DEFAULT_V1_COST_MODEL_LIST,
   DEFAULT_V2_COST_MODEL_LIST,
   DeserializedAddress,
@@ -87,8 +88,10 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     [1]: false,
     [2]: false,
   };
+  private protocolParams: Protocol;
 
-  constructor(verbose = false) {
+  constructor(protocolParams?: Protocol, verbose = false) {
+    this.protocolParams = protocolParams || DEFAULT_PROTOCOL_PARAMETERS;
     this.verbose = verbose;
     this.txBody = new TransactionBody(
       Serialization.CborSet.fromCore([], TransactionInput.fromCore),
@@ -98,6 +101,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     );
     this.txWitnessSet = new TransactionWitnessSet();
   }
+
   serializeRewardAddress(
     stakeKeyHash: string,
     isScriptHash?: boolean,
@@ -213,7 +217,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
 
   serializeTxBody = (
     txBuilderBody: MeshTxBuilderBody,
-    protocolParams: Protocol,
+    protocolParams?: Protocol,
   ): string => {
     const {
       inputs,
@@ -228,6 +232,10 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
       // metadata,
     } = txBuilderBody;
 
+    if (this.verbose) {
+      console.log("txBodyJson", JSON.stringify(txBuilderBody));
+    }
+
     mints.sort((a, b) => a.policyId.localeCompare(b.policyId));
     inputs.sort((a, b) => {
       if (a.txIn.txHash === b.txIn.txHash) {
@@ -238,13 +246,13 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     });
 
     this.addAllInputs(inputs);
-    this.addAllOutputs(outputs);
+    this.addAllOutputs(this.sanitizeOutputs(outputs));
     this.addAllMints(mints);
     this.addAllCollateralInputs(collaterals);
     this.addAllReferenceInputs(referenceInputs);
     this.setValidityInterval(validityRange);
     this.buildWitnessSet();
-    this.balanceTx(changeAddress, requiredSignatures.length, protocolParams);
+    this.balanceTx(changeAddress, requiredSignatures.length);
     return new Transaction(this.txBody, this.txWitnessSet).toCbor();
   };
 
@@ -284,6 +292,44 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     );
     cardanoTx.setWitnessSet(currentWitnessSet);
     return cardanoTx.toCbor();
+  };
+
+  private sanitizeOutputs = (outputs: Output[]): Output[] => {
+    let sanitizedOutputs: Output[] = [];
+    for (let i = 0; i < outputs.length; i++) {
+      let currentOutput = outputs[i];
+      let lovelaceValue;
+      for (let j = 0; j < currentOutput!.amount.length; j++) {
+        let outputAmount = currentOutput!.amount[j];
+        if (outputAmount?.unit == "" || outputAmount?.unit == "lovelace") {
+          if (outputAmount?.quantity == "0" || outputAmount?.quantity == "") {
+            // If lovelace quantity is not set, we will first set a dummy amount to calculate
+            // the size of output, which we can then use to calculate the real minAdaAmount
+            outputAmount.unit = "lovelace";
+            outputAmount.quantity = "10000000";
+          }
+          // Store object reference in lovelaceValue, then we can directly manipulate this quantity once
+          // we calculate the min utxo value
+          lovelaceValue = outputAmount;
+        }
+        if (!lovelaceValue) {
+          lovelaceValue = {
+            unit: "lovelace",
+            quantity: "10000000",
+          };
+          currentOutput!.amount.push(lovelaceValue);
+        }
+        let dummyCardanoOutput: TransactionOutput = this.toCardanoOutput(
+          currentOutput!,
+        );
+        let minUtxoValue =
+          (160 + dummyCardanoOutput.toCbor().length / 2 + 1) *
+          this.protocolParams.coinsPerUtxoSize;
+        lovelaceValue.quantity = minUtxoValue.toString();
+      }
+      sanitizedOutputs.push(currentOutput!);
+    }
+    return sanitizedOutputs;
   };
 
   private addAllInputs = (inputs: TxIn[]) => {
@@ -516,7 +562,12 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
 
   private addOutput = (output: Output) => {
     const currentOutputs = this.txBody.outputs();
-    const cardanoOutput = new TransactionOutput(
+    const cardanoOutput = currentOutputs.push(this.toCardanoOutput(output));
+    this.txBody.setOutputs(currentOutputs);
+  };
+
+  private toCardanoOutput = (output: Output): TransactionOutput => {
+    let cardanoOutput = new TransactionOutput(
       Address.fromBech32(output.address),
       toValue(output.amount),
     );
@@ -563,8 +614,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
         }
       }
     }
-    currentOutputs.push(cardanoOutput);
-    this.txBody.setOutputs(currentOutputs);
+    return cardanoOutput;
   };
 
   private addAllReferenceInputs = (refInputs: RefTxIn[]) => {
@@ -879,7 +929,6 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
   private balanceTx = (
     changeAddress: string,
     numberOfRequiredWitnesses: number,
-    protocolParams: Protocol,
   ) => {
     if (changeAddress === "") {
       throw new Error("Can't balance tx without a change address");
@@ -938,8 +987,9 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     this.txBody.setFee(BigInt("10000000"));
     const dummyTx = this.createDummyTx(numberOfRequiredWitnesses);
     const fee =
-      protocolParams.minFeeB +
-      (dummyTx.toCbor().length / 2) * Number(protocolParams.coinsPerUtxoSize);
+      this.protocolParams.minFeeB +
+      (dummyTx.toCbor().length / 2) *
+        Number(this.protocolParams.coinsPerUtxoSize);
     this.txBody.setFee(BigInt(fee));
 
     // The change output should be the last element in outputs

@@ -2,6 +2,7 @@ import { MeshTxBuilderBody, validityRangeToObj } from "@meshsdk/common";
 
 import { certificateToObj } from "./certificate";
 import { mintItemToObj } from "./mint";
+import { networkToObj } from "./network";
 import { outputToObj } from "./output";
 import { collateralTxInToObj, txInToObj } from "./txIn";
 import { withdrawalToObj } from "./withdrawal";
@@ -34,7 +35,7 @@ export const meshTxBuilderBodyToObj = ({
     certificates: certificates.map(certificateToObj),
     signingKey: signingKey,
     withdrawals: withdrawals.map(withdrawalToObj),
-    network,
+    network: networkToObj(network),
   };
 };
 

@@ -33,7 +33,7 @@ export type MeshTxBuilderBody = {
     strategy: UtxoSelectionStrategy;
     includeTxFees: boolean;
   };
-  network: string;
+  network: string | number[][];
 };
 
 export const emptyTxBuilderBody = (): MeshTxBuilderBody => ({

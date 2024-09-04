@@ -11,6 +11,7 @@ import {
 
 export interface IMeshTxSerializer {
   verbose: boolean;
+  // TODO: remove protocol params argument from serializeTxBody, it's already in the constructor of serializers
   serializeTxBody(
     txBuilderBody: MeshTxBuilderBody,
     protocolParams: Protocol,
