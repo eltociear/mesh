@@ -63,6 +63,7 @@ import {
   VkeyWitness,
 } from "../types";
 import { toAddress, toPlutusData, toValue } from "../utils";
+import { calculateFees } from "../utils/fee";
 import { hashScriptData } from "../utils/script-data-hash";
 import { empty, mergeValue, negatives, subValue } from "../utils/value";
 
@@ -89,6 +90,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     [2]: false,
   };
   private protocolParams: Protocol;
+  private refScriptSize: number;
 
   constructor(protocolParams?: Protocol, verbose = false) {
     this.protocolParams = protocolParams || DEFAULT_PROTOCOL_PARAMETERS;
@@ -99,6 +101,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
       BigInt(0),
       undefined,
     );
+    this.refScriptSize = 0;
     this.txWitnessSet = new TransactionWitnessSet();
   }
 
@@ -468,6 +471,16 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
           break;
         }
       }
+      // Keep track of total size of reference scripts
+      if (currentTxIn.scriptTxIn.scriptSource.scriptSize) {
+        this.refScriptSize += Number(
+          currentTxIn.scriptTxIn.scriptSource.scriptSize,
+        );
+      } else {
+        throw new Error(
+          "A reference script was used without providing its size, this must be provided as fee calculations are based on it",
+        );
+      }
     }
     if (currentTxIn.scriptTxIn.datumSource.type === "Provided") {
       this.datumsProvided.add(
@@ -542,6 +555,17 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
           BigInt(currentTxIn.simpleScriptTxIn.scriptSource.txIndex),
         ),
       );
+
+      // Keep track of total size of reference scripts
+      if (currentTxIn.simpleScriptTxIn.scriptSource.scriptSize) {
+        this.refScriptSize += Number(
+          currentTxIn.simpleScriptTxIn.scriptSource.scriptSize,
+        );
+      } else {
+        throw new Error(
+          "A reference script was used without providing its size, this must be provided as fee calculations are based on it",
+        );
+      }
 
       referenceInputs.setValues(referenceInputsList);
 
@@ -981,10 +1005,18 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     // Create a dummy tx that we will use to calculate fees
     this.txBody.setFee(BigInt("10000000"));
     const dummyTx = this.createDummyTx(numberOfRequiredWitnesses);
-    const fee =
-      this.protocolParams.minFeeB +
-      (dummyTx.toCbor().length / 2) *
-        Number(this.protocolParams.coinsPerUtxoSize);
+
+    // The calculate fees util will first calculate fee based on
+    // length of dummy tx, then calculate fees related to script
+    // ref size
+    const fee = calculateFees(
+      this.protocolParams.minFeeA,
+      this.protocolParams.minFeeB,
+      this.protocolParams.minFeeRefScriptCostPerByte,
+      dummyTx,
+      this.refScriptSize,
+    );
+
     this.txBody.setFee(BigInt(fee));
 
     // The change output should be the last element in outputs
@@ -995,8 +1027,14 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
         "Somehow the output length was 0 after attempting to calculate fees",
       );
     }
-    changeOutput.amount().setCoin(changeOutput.amount().coin() - BigInt(fee));
-    currentOutputs.push(changeOutput);
+    if (changeOutput.amount().coin() - BigInt(fee) > 0) {
+      changeOutput.amount().setCoin(changeOutput.amount().coin() - BigInt(fee));
+      currentOutputs.push(changeOutput);
+    } else if (changeOutput.amount().coin() - BigInt(fee) < 0) {
+      throw new Error(
+        "There was enough inputs to cover outputs, but not enough to cover fees",
+      );
+    }
     this.txBody.setOutputs(currentOutputs);
   };
 
