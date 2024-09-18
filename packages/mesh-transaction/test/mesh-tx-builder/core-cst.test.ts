@@ -1,5 +1,9 @@
 import { MeshTxBuilderBody } from "@meshsdk/common";
-import { CardanoSDKSerializer } from "@meshsdk/core-cst";
+import {
+  CardanoSDKSerializer,
+  resolveNativeScriptHash,
+} from "@meshsdk/core-cst";
+import { MeshTxBuilder } from "@meshsdk/transaction";
 
 describe("Transaction serializer - core-cst", () => {
   it("Outputs should contain min utxo value if lovelace value not provided", () => {
@@ -105,6 +109,45 @@ describe("Transaction serializer - core-cst", () => {
     };
 
     let txHex = serializer.serializeTxBody(body);
+    console.log(txHex);
+    expect(txHex !== "").toBeTruthy();
+  });
+
+  it("Correct fee calculated with ref script used", () => {
+    const serializer = new CardanoSDKSerializer(undefined, true);
+    let mesh = new MeshTxBuilder({ serializer });
+
+    let txHex = mesh
+      .txIn(
+        "2cb57168ee66b68bd04a0d595060b546edf30c04ae1031b883c9ac797967dd85",
+        3,
+        [{ unit: "lovelace", quantity: "9891607895" }],
+        "addr_test1vru4e2un2tq50q4rv6qzk7t8w34gjdtw3y2uzuqxzj0ldrqqactxh",
+      )
+      .simpleScriptTxInReference(
+        "2cb57168ee66b68bd04a0d595060b546edf30c04ae1031b883c9ac797967dd85",
+        1,
+        resolveNativeScriptHash({
+          type: "all",
+          scripts: [
+            {
+              type: "after",
+              slot: "1",
+            },
+          ],
+        }),
+        "1000",
+      )
+      .txOut(
+        "addr_test1vru4e2un2tq50q4rv6qzk7t8w34gjdtw3y2uzuqxzj0ldrqqactxh",
+        [{ unit: "lovelace", quantity: "2000000" }],
+      )
+      .changeAddress(
+        "addr_test1vru4e2un2tq50q4rv6qzk7t8w34gjdtw3y2uzuqxzj0ldrqqactxh",
+      )
+      .setNetwork("preprod")
+      .completeSync();
+
     console.log(txHex);
     expect(txHex !== "").toBeTruthy();
   });
