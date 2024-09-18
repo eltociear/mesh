@@ -1,5 +1,6 @@
 import type { NextPage } from "next";
 
+import ButtonFloatDocumentation from "~/components/button/button-float-documentation";
 import SidebarFullwidth from "~/components/layouts/sidebar-fullwidth";
 import Link from "~/components/link";
 import TitleIconDescriptionBody from "~/components/sections/title-icon-description-body";
@@ -11,6 +12,7 @@ import TxbuilderCip20 from "./cip20";
 import TxbuilderCoinSelection from "./coin-selection";
 import TxbuilderInitializeTxbuilder from "./initialize-txbuilder";
 import TxbuilderMultisig from "./multisig";
+import TxbuilderMultisigNativeScript from "./multisig-native-script";
 import TxbuilderSendValues from "./send-values";
 import TxbuilderSetNetwork from "./set-network";
 import TxbuilderSetRequiredSigners from "./set-required-signers";
@@ -21,6 +23,7 @@ const ReactPage: NextPage = () => {
     { label: "Initialize Tx Builder", to: "initializeTxbuilder" },
     { label: "Send value", to: "sendValue" },
     { label: "Multi-signature", to: "multisig" },
+    { label: "Multisig native script", to: "multisigNativeScript" },
     { label: "Build with object", to: "buildWithObject" },
     { label: "Coin selection", to: "coinSelection" },
     { label: "Set metadata", to: "cip20" },
@@ -63,11 +66,13 @@ const ReactPage: NextPage = () => {
             </p>
           </>
         </TitleIconDescriptionBody>
+        <ButtonFloatDocumentation href="https://docs.meshjs.dev/transactions/classes/MeshTxBuilder" />
 
         <TxbuilderInitializeTxbuilder />
         {/* <TxbuilderCommonFunctions /> */}
         <TxbuilderSendValues />
         <TxbuilderMultisig />
+        <TxbuilderMultisigNativeScript />
         <TxbuilderBuildWithObject />
         {/* <TxbuilderSetMetadata /> */}
         <TxbuilderCoinSelection />

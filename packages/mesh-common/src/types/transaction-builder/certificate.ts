@@ -60,29 +60,28 @@ export type CertificateType =
     }
   | {
       type: "DRepRegistration";
-      votingKeyAddress: string;
+      drepId: string;
       coin: number;
       anchor?: Anchor;
     }
   | {
       type: "DRepDeregistration";
-      votingKeyAddress: string;
+      drepId: string;
       coin: number;
     }
   | {
       type: "DRepUpdate";
-      votingKeyAddress: string;
-      anchor: Anchor;
+      drepId: string;
+      anchor?: Anchor;
     };
 
 export type DRep =
-  | { keyHash: string }
-  | { scriptHash: string }
+  | { dRepId: string }
   | {
-      alwaysAbstain: {};
+      alwaysAbstain: null;
     }
   | {
-      alwaysNoConfidence: {};
+      alwaysNoConfidence: null;
     };
 
 export type Anchor = {

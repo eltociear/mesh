@@ -12,6 +12,7 @@ import {
   UTxO,
   Wallet,
 } from "@meshsdk/common";
+import { csl } from "@meshsdk/core-csl";
 import {
   Address,
   addressToBech32,
@@ -461,6 +462,43 @@ export class BrowserWallet implements IInitiator, ISigner, ISubmitter {
    *
    * @returns wallet account's public DRep Key
    */
+  async getDRep(): Promise<
+    | {
+        publicKey: string;
+        publicKeyHash: string;
+        dRepIDCip105: string;
+      }
+    | undefined
+  > {
+    try {
+      if (this._walletInstance.cip95 === undefined) return undefined;
+
+      const dRepKey = await this._walletInstance.cip95.getPubDRepKey();
+      const { dRepIDHash } = await BrowserWallet.dRepKeyToDRepID(dRepKey);
+
+      // const networkId = await this.getNetworkId();
+      // const dRepId = buildDRepID(dRepKey, networkId); // todo: this is not correct
+
+      const csldRepIdKeyHash = csl.PublicKey.from_hex(dRepKey).hash(); // todo: need to replace CST
+      const dRepId = csldRepIdKeyHash.to_bech32("drep");
+
+      return {
+        publicKey: dRepKey,
+        publicKeyHash: dRepIDHash,
+        dRepIDCip105: dRepId,
+      };
+    } catch (e) {
+      console.error(e);
+      return undefined;
+    }
+  }
+
+  /**
+   * The connected wallet account provides the account's public DRep Key, derivation as described in CIP-0105.
+   * These are used by the client to identify the user's on-chain CIP-1694 interactions, i.e. if a user has registered to be a DRep.
+   *
+   * @returns wallet account's public DRep Key
+   */
   async getPubDRepKey(): Promise<
     | {
         pubDRepKey: string;
@@ -473,16 +511,18 @@ export class BrowserWallet implements IInitiator, ISigner, ISubmitter {
       if (this._walletInstance.cip95 === undefined) return undefined;
 
       const dRepKey = await this._walletInstance.cip95.getPubDRepKey();
-      const { dRepKeyHex, dRepIDHash } =
-        await BrowserWallet.dRepKeyToDRepID(dRepKey);
+      const { dRepIDHash } = await BrowserWallet.dRepKeyToDRepID(dRepKey);
 
-      const networkId = await this.getNetworkId();
-      const dRepId = buildDRepID(dRepKeyHex, networkId);
+      // const networkId = await this.getNetworkId();
+      // const dRepId = buildDRepID(dRepKey, networkId); // todo: this is not correct
+
+      const csldRepIdKeyHash = csl.PublicKey.from_hex(dRepKey).hash(); // todo: need to replace CST
+      const dRepId = csldRepIdKeyHash.to_bech32("drep");
 
       return {
         pubDRepKey: dRepKey,
         dRepIDHash: dRepIDHash,
-        dRepIDBech32: dRepId, // todo to check
+        dRepIDBech32: dRepId,
       };
     } catch (e) {
       console.error(e);

@@ -2,12 +2,15 @@ import JSONBig from "json-bigint";
 
 import {
   Action,
+  Anchor,
   Asset,
   Budget,
   BuilderData,
   Data,
   DEFAULT_PROTOCOL_PARAMETERS,
   DEFAULT_REDEEMER_BUDGET,
+  DRep,
+  DREP_DEPOSIT,
   emptyTxBuilderBody,
   LanguageVersion,
   MeshTxBuilderBody,
@@ -115,7 +118,7 @@ export class MeshTxBuilderCore {
         simpleScriptTxIn: {
           scriptSource: {
             type: "Provided",
-            script: scriptCbor,
+            scriptCode: scriptCbor,
           },
         },
       };
@@ -199,33 +202,47 @@ export class MeshTxBuilderCore {
     return this;
   };
 
-  // /**
-  //  * Native script - Set the reference input where it would also be spent in the transaction
-  //  * @param txHash The transaction hash of the reference UTxO
-  //  * @param txIndex The transaction index of the reference UTxO
-  //  * @param spendingScriptHash The script hash of the spending script
-  //  * @returns The MeshTxBuilder instance
-  //  */
-  // simpleScriptTxInReference = (
-  //   txHash: string,
-  //   txIndex: number,
-  //   spendingScriptHash?: string
-  // ) => {
-  //   if (!this.txInQueueItem) throw Error('Undefined input');
-  //   if (this.txInQueueItem.type === 'PubKey')
-  //     throw Error(
-  //       'Spending tx in reference attempted to be called a non script input'
-  //     );
-  //   this.txInQueueItem.scriptTxIn.scriptSource = {
-  //     type: 'Inline',
-  //     txInInfo: {
-  //       txHash,
-  //       txIndex,
-  //       spendingScriptHash,
-  //     },
-  //   };
-  //   return this;
-  // };
+  /**
+   * Native script - Set the reference input where it would also be spent in the transaction
+   * @param txHash The transaction hash of the reference UTxO
+   * @param txIndex The transaction index of the reference UTxO
+   * @param spendingScriptHash The script hash of the spending script
+   * @returns The MeshTxBuilder instance
+   */
+  simpleScriptTxInReference = (
+    txHash: string,
+    txIndex: number,
+    spendingScriptHash?: string,
+    scriptSize?: string,
+  ) => {
+    if (!this.txInQueueItem) throw Error("Undefined input");
+    if (this.txInQueueItem.type === "Script") {
+      throw Error(
+        "simpleScriptTxInReference called on a plutus script, use spendingTxInReference instead",
+      );
+    }
+    if (this.txInQueueItem.type === "SimpleScript") {
+      throw Error(
+        "simpleScriptTxInReference called on a native script input that already has a script defined",
+      );
+    }
+    if (this.txInQueueItem.type === "PubKey") {
+      this.txInQueueItem = {
+        type: "SimpleScript",
+        txIn: this.txInQueueItem.txIn,
+        simpleScriptTxIn: {
+          scriptSource: {
+            type: "Inline",
+            txHash,
+            txIndex,
+            simpleScriptHash: spendingScriptHash,
+            scriptSize,
+          },
+        },
+      };
+    }
+    return this;
+  };
 
   /**
    * Set the redeemer for the reference input to be spent in same transaction
@@ -400,6 +417,20 @@ export class MeshTxBuilderCore {
   };
 
   /**
+   * Set the reference script to be attached with the output
+   * @param languageVersion The Plutus script version
+   * @returns The MeshTxBuilder instance
+   */
+  spendingPlutusScript = (languageVersion: LanguageVersion) => {
+    // This flag should signal a start to a script input
+    // The next step after will be to add a tx-in
+    // After which, we will REQUIRE, script, datum and redeemer info
+    // for unlocking this particular input
+    this.addingPlutusScriptInput = true;
+    this.plutusSpendingScriptVersion = languageVersion;
+    return this;
+  };
+  /**
    * Set the instruction that it is currently using V1 Plutus spending scripts
    * @returns The MeshTxBuilder instance
    */
@@ -511,6 +542,16 @@ export class MeshTxBuilderCore {
     return this;
   };
 
+  /**
+   * Set the minting script for the current mint
+   * @param languageVersion The Plutus script version
+   * @returns The MeshTxBuilder instance
+   */
+  mintPlutusScript = (languageVersion: LanguageVersion) => {
+    this.addingPlutusMint = true;
+    this.plutusMintingScriptVersion = languageVersion;
+    return this;
+  };
   /**
    * Set the instruction that it is currently using V1 Plutus minting scripts
    * @returns The MeshTxBuilder instance
@@ -706,6 +747,16 @@ export class MeshTxBuilderCore {
     return this;
   };
 
+  /**
+   * Set the instruction that it is currently using V1 Plutus withdrawal scripts
+   * @param languageVersion The Plutus script version
+   * @returns The MeshTxBuilder instance
+   */
+  withdrawalPlutusScript = (languageVersion: LanguageVersion) => {
+    this.addingPlutusWithdrawal = true;
+    this.plutusWithdrawalScriptVersion = languageVersion;
+    return this;
+  };
   /**
    * Set the instruction that it is currently using V1 Plutus withdrawal scripts
    * @returns The MeshTxBuilder instance
@@ -933,6 +984,86 @@ export class MeshTxBuilderCore {
         type: "RetirePool",
         poolId,
         epoch,
+      },
+    });
+    return this;
+  };
+
+  /**
+   * Registers DRep certificate, and adds it to the transaction
+   * @param drepId The bech32 drep id (i.e. starts with `drep1xxxxx`)
+   * @param anchor The DRep anchor, consists of a URL and a hash of the doc
+   * @param coin DRep registration deposit
+   * @returns The MeshTxBuilder instance
+   */
+  drepRegistrationCertificate = (
+    drepId: string,
+    anchor?: Anchor,
+    coin: string = DREP_DEPOSIT,
+  ) => {
+    this.meshTxBuilderBody.certificates.push({
+      type: "BasicCertificate",
+      certType: {
+        type: "DRepRegistration",
+        drepId,
+        coin: Number(coin),
+        anchor,
+      },
+    });
+    return this;
+  };
+
+  /**
+   * Dregister DRep certificate, and adds it to the transaction
+   * @param drepId The bech32 drep id (i.e. starts with `drep1xxxxx`)
+   * @param coin DRep registration deposit
+   * @returns The MeshTxBuilder instance
+   */
+  drepDeregistrationCertificate = (
+    drepId: string,
+    coin: string = DREP_DEPOSIT,
+  ) => {
+    this.meshTxBuilderBody.certificates.push({
+      type: "BasicCertificate",
+      certType: {
+        type: "DRepDeregistration",
+        drepId,
+        coin: Number(coin),
+      },
+    });
+    return this;
+  };
+
+  /**
+   * Update DRep certificate, and adds it to the transaction
+   * @param drepId The bech32 drep id (i.e. starts with `drep1xxxxx`)
+   * @param anchor The DRep anchor, consists of a URL and a hash of the doc
+   */
+  drepUpdateCertificate = (drepId: string, anchor?: Anchor) => {
+    this.meshTxBuilderBody.certificates.push({
+      type: "BasicCertificate",
+      certType: {
+        type: "DRepUpdate",
+        drepId,
+        anchor,
+      },
+    });
+    return this;
+  };
+
+  /**
+   * Dregister DRep certificate, and adds it to the transaction
+   * @param drepId The bech32 drep id (i.e. starts with `drep1xxxxx`)
+   * @param rewardAddress The bech32 reward address (i.e. start with `stake_xxxxx`)
+   * @returns The MeshTxBuilder instance
+   */
+  voteDelegationCertificate = (drep: DRep, rewardAddress: string) => {
+    this.meshTxBuilderBody.certificates.push({
+      type: "BasicCertificate",
+      certType: {
+        type: "VoteDelegation",
+        drep,
+        stakeKeyAddress: rewardAddress,
       },
     });
     return this;
