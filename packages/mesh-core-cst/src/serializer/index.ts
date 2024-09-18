@@ -441,46 +441,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
         }
       }
     } else if (currentTxIn.scriptTxIn.scriptSource.type === "Inline") {
-      let referenceInputs =
-        this.txBody.referenceInputs() ??
-        Serialization.CborSet.fromCore([], TransactionInput.fromCore);
-
-      let referenceInputsList = [...referenceInputs.values()];
-
-      referenceInputsList.push(
-        new TransactionInput(
-          TransactionId(currentTxIn.scriptTxIn.scriptSource.txHash),
-          BigInt(currentTxIn.scriptTxIn.scriptSource.txIndex),
-        ),
-      );
-
-      referenceInputs.setValues(referenceInputsList);
-
-      this.txBody.setReferenceInputs(referenceInputs);
-      switch (currentTxIn.scriptTxIn.scriptSource.version) {
-        case "V1": {
-          this.usedLanguages[PlutusLanguageVersion.V1] = true;
-          break;
-        }
-        case "V2": {
-          this.usedLanguages[PlutusLanguageVersion.V2] = true;
-          break;
-        }
-        case "V3": {
-          this.usedLanguages[PlutusLanguageVersion.V3] = true;
-          break;
-        }
-      }
-      // Keep track of total size of reference scripts
-      if (currentTxIn.scriptTxIn.scriptSource.scriptSize) {
-        this.refScriptSize += Number(
-          currentTxIn.scriptTxIn.scriptSource.scriptSize,
-        );
-      } else {
-        throw new Error(
-          "A reference script was used without providing its size, this must be provided as fee calculations are based on it",
-        );
-      }
+      this.addScriptRef(currentTxIn.scriptTxIn.scriptSource);
     }
     if (currentTxIn.scriptTxIn.datumSource.type === "Provided") {
       this.datumsProvided.add(
@@ -543,33 +504,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
         ),
       );
     } else if (currentTxIn.simpleScriptTxIn.scriptSource.type === "Inline") {
-      let referenceInputs =
-        this.txBody.referenceInputs() ??
-        Serialization.CborSet.fromCore([], TransactionInput.fromCore);
-
-      let referenceInputsList = [...referenceInputs.values()];
-
-      referenceInputsList.push(
-        new TransactionInput(
-          TransactionId(currentTxIn.simpleScriptTxIn.scriptSource.txHash),
-          BigInt(currentTxIn.simpleScriptTxIn.scriptSource.txIndex),
-        ),
-      );
-
-      // Keep track of total size of reference scripts
-      if (currentTxIn.simpleScriptTxIn.scriptSource.scriptSize) {
-        this.refScriptSize += Number(
-          currentTxIn.simpleScriptTxIn.scriptSource.scriptSize,
-        );
-      } else {
-        throw new Error(
-          "A reference script was used without providing its size, this must be provided as fee calculations are based on it",
-        );
-      }
-
-      referenceInputs.setValues(referenceInputsList);
-
-      this.txBody.setReferenceInputs(referenceInputs);
+      this.addSimpleScriptRef(currentTxIn.simpleScriptTxIn.scriptSource);
     }
   };
 
@@ -699,22 +634,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
           ),
         );
       } else if (nativeScriptSource.type === "Inline") {
-        let referenceInputs =
-          this.txBody.referenceInputs() ??
-          Serialization.CborSet.fromCore([], TransactionInput.fromCore);
-
-        let referenceInputsList = [...referenceInputs.values()];
-
-        referenceInputsList.push(
-          new TransactionInput(
-            TransactionId(nativeScriptSource.txHash),
-            BigInt(nativeScriptSource.txIndex),
-          ),
-        );
-
-        referenceInputs.setValues(referenceInputsList);
-
-        this.txBody.setReferenceInputs(referenceInputs);
+        this.addSimpleScriptRef(nativeScriptSource);
       }
     } else if (mint.type === "Plutus") {
       if (!mint.scriptSource)
@@ -756,36 +676,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
             break;
         }
       } else if (plutusScriptSource.type === "Inline") {
-        let referenceInputs =
-          this.txBody.referenceInputs() ??
-          Serialization.CborSet.fromCore([], TransactionInput.fromCore);
-
-        let referenceInputsList = [...referenceInputs.values()];
-
-        referenceInputsList.push(
-          new TransactionInput(
-            TransactionId(plutusScriptSource.txHash),
-            BigInt(plutusScriptSource.txIndex),
-          ),
-        );
-
-        referenceInputs.setValues(referenceInputsList);
-
-        this.txBody.setReferenceInputs(referenceInputs);
-        switch (plutusScriptSource.version) {
-          case "V1": {
-            this.usedLanguages[PlutusLanguageVersion.V1] = true;
-            break;
-          }
-          case "V2": {
-            this.usedLanguages[PlutusLanguageVersion.V2] = true;
-            break;
-          }
-          case "V3": {
-            this.usedLanguages[PlutusLanguageVersion.V3] = true;
-            break;
-          }
-        }
+        this.addScriptRef(plutusScriptSource);
       }
     }
   };
@@ -1052,5 +943,82 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     );
 
     return new Transaction(this.txBody, dummyWitnessSet);
+  };
+
+  private addScriptRef = (scriptSource: ScriptSource): void => {
+    if (scriptSource.type !== "Inline") {
+      return;
+    }
+    let referenceInputs =
+      this.txBody.referenceInputs() ??
+      Serialization.CborSet.fromCore([], TransactionInput.fromCore);
+
+    let referenceInputsList = [...referenceInputs.values()];
+
+    referenceInputsList.push(
+      new TransactionInput(
+        TransactionId(scriptSource.txHash),
+        BigInt(scriptSource.txIndex),
+      ),
+    );
+
+    referenceInputs.setValues(referenceInputsList);
+
+    this.txBody.setReferenceInputs(referenceInputs);
+    switch (scriptSource.version) {
+      case "V1": {
+        this.usedLanguages[PlutusLanguageVersion.V1] = true;
+        break;
+      }
+      case "V2": {
+        this.usedLanguages[PlutusLanguageVersion.V2] = true;
+        break;
+      }
+      case "V3": {
+        this.usedLanguages[PlutusLanguageVersion.V3] = true;
+        break;
+      }
+    }
+    // Keep track of total size of reference scripts
+    if (scriptSource.scriptSize) {
+      this.refScriptSize += Number(scriptSource.scriptSize);
+    } else {
+      throw new Error(
+        "A reference script was used without providing its size, this must be provided as fee calculations are based on it",
+      );
+    }
+  };
+
+  private addSimpleScriptRef = (
+    simpleScriptSource: SimpleScriptSourceInfo,
+  ): void => {
+    if (simpleScriptSource.type !== "Inline") {
+      return;
+    }
+    let referenceInputs =
+      this.txBody.referenceInputs() ??
+      Serialization.CborSet.fromCore([], TransactionInput.fromCore);
+
+    let referenceInputsList = [...referenceInputs.values()];
+
+    referenceInputsList.push(
+      new TransactionInput(
+        TransactionId(simpleScriptSource.txHash),
+        BigInt(simpleScriptSource.txIndex),
+      ),
+    );
+
+    // Keep track of total size of reference scripts
+    if (simpleScriptSource.scriptSize) {
+      this.refScriptSize += Number(simpleScriptSource.scriptSize);
+    } else {
+      throw new Error(
+        "A reference script was used without providing its size, this must be provided as fee calculations are based on it",
+      );
+    }
+
+    referenceInputs.setValues(referenceInputsList);
+
+    this.txBody.setReferenceInputs(referenceInputs);
   };
 }
