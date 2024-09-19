@@ -573,11 +573,12 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
 
   private addAllReferenceInputs = (refInputs: RefTxIn[]) => {
     for (let i = 0; i < refInputs.length; i++) {
-      this.addReferenceIput(refInputs[i]!);
+      this.addReferenceInput(refInputs[i]!);
     }
+    this.removeInputRefInputOverlap();
   };
 
-  private addReferenceIput = (refInput: RefTxIn) => {
+  private addReferenceInput = (refInput: RefTxIn) => {
     let referenceInputs =
       this.txBody.referenceInputs() ??
       Serialization.CborSet.fromCore([], TransactionInput.fromCore);
@@ -833,6 +834,30 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     );
     if (scriptDataHash) {
       this.txBody.setScriptDataHash(scriptDataHash);
+    }
+  };
+
+  private removeInputRefInputOverlap = () => {
+    let refInputsValues: TransactionInput[] = [];
+    const inputs = this.txBody.inputs()?.values();
+    if (this.txBody.referenceInputs()) {
+      const currentRefInputValues = this.txBody.referenceInputs()!.values();
+      currentRefInputValues.forEach((refInput) => {
+        for (let i = 0; i < inputs.length; i++) {
+          if (
+            refInput.transactionId() != inputs[i]!.transactionId() ||
+            refInput.index() != inputs[i]!.index()
+          ) {
+            refInputsValues.push(refInput);
+          }
+        }
+      });
+      const referenceInputs = Serialization.CborSet.fromCore(
+        [],
+        TransactionInput.fromCore,
+      );
+      referenceInputs.setValues(refInputsValues);
+      this.txBody.setReferenceInputs(referenceInputs);
     }
   };
 
