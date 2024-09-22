@@ -298,41 +298,45 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
   };
 
   private sanitizeOutputs = (outputs: Output[]): Output[] => {
-    let sanitizedOutputs: Output[] = [];
     for (let i = 0; i < outputs.length; i++) {
       let currentOutput = outputs[i];
-      let lovelaceValue;
+      let lovelaceFound = false;
       for (let j = 0; j < currentOutput!.amount.length; j++) {
         let outputAmount = currentOutput!.amount[j];
         if (outputAmount?.unit == "" || outputAmount?.unit == "lovelace") {
+          lovelaceFound = true;
           if (outputAmount?.quantity == "0" || outputAmount?.quantity == "") {
             // If lovelace quantity is not set, we will first set a dummy amount to calculate
             // the size of output, which we can then use to calculate the real minAdaAmount
             outputAmount.unit = "lovelace";
             outputAmount.quantity = "10000000";
+
+            let dummyCardanoOutput: TransactionOutput = this.toCardanoOutput(
+              currentOutput!,
+            );
+            let minUtxoValue =
+              (160 + dummyCardanoOutput.toCbor().length / 2 + 1) *
+              this.protocolParams.coinsPerUtxoSize;
+            outputAmount.quantity = minUtxoValue.toString();
           }
-          // Store object reference in lovelaceValue, then we can directly manipulate this quantity once
-          // we calculate the min utxo value
-          lovelaceValue = outputAmount;
         }
-        if (!lovelaceValue) {
-          lovelaceValue = {
+        if (!lovelaceFound) {
+          let currentAmount = {
             unit: "lovelace",
             quantity: "10000000",
           };
-          currentOutput!.amount.push(lovelaceValue);
+          currentOutput!.amount.push(currentAmount);
+          let dummyCardanoOutput: TransactionOutput = this.toCardanoOutput(
+            currentOutput!,
+          );
+          let minUtxoValue =
+            (160 + dummyCardanoOutput.toCbor().length / 2 + 1) *
+            this.protocolParams.coinsPerUtxoSize;
+          currentAmount.quantity = minUtxoValue.toString();
         }
-        let dummyCardanoOutput: TransactionOutput = this.toCardanoOutput(
-          currentOutput!,
-        );
-        let minUtxoValue =
-          (160 + dummyCardanoOutput.toCbor().length / 2 + 1) *
-          this.protocolParams.coinsPerUtxoSize;
-        lovelaceValue.quantity = minUtxoValue.toString();
       }
-      sanitizedOutputs.push(currentOutput!);
     }
-    return sanitizedOutputs;
+    return outputs;
   };
 
   private addAllInputs = (inputs: TxIn[]) => {
