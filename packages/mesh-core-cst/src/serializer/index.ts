@@ -255,7 +255,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     this.addAllReferenceInputs(referenceInputs);
     this.setValidityInterval(validityRange);
     this.buildWitnessSet();
-    this.balanceTx(changeAddress, requiredSignatures.length);
+    this.balanceTx(changeAddress);
     return new Transaction(this.txBody, this.txWitnessSet).toCbor();
   };
 
@@ -520,7 +520,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
 
   private addOutput = (output: Output) => {
     const currentOutputs = this.txBody.outputs();
-    const cardanoOutput = currentOutputs.push(this.toCardanoOutput(output));
+    currentOutputs.push(this.toCardanoOutput(output));
     this.txBody.setOutputs(currentOutputs);
   };
 
@@ -865,10 +865,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     }
   };
 
-  private balanceTx = (
-    changeAddress: string,
-    numberOfRequiredWitnesses: number,
-  ) => {
+  private balanceTx = (changeAddress: string) => {
     if (changeAddress === "") {
       throw new Error("Can't balance tx without a change address");
     }
@@ -924,6 +921,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
 
     // Create a dummy tx that we will use to calculate fees
     this.txBody.setFee(BigInt("10000000"));
+    const numberOfRequiredWitnesses = this.countNumberOfRequiredWitnesses();
     const dummyTx = this.createDummyTx(numberOfRequiredWitnesses);
 
     // The calculate fees util will first calculate fee based on
@@ -1050,4 +1048,30 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
 
     this.txBody.setReferenceInputs(referenceInputs);
   };
+
+  private countNumberOfRequiredWitnesses(): number {
+    // TODO: handle all fields that requires vkey witnesses
+    // TODO: handle native script case
+
+    let requiredWitnesses = 0;
+    // Handle vkey witnesses from inputs
+    const inputs = this.txBody.inputs().values();
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+      // KeyHash credential type is enum 0
+      if (
+        this.utxoContext.get(input!)?.address().getProps().paymentPart?.type ===
+        0
+      ) {
+        requiredWitnesses++;
+      }
+    }
+
+    // Handle required signers
+    if (this.txBody.requiredSigners()) {
+      requiredWitnesses += this.txBody.requiredSigners()!.size();
+    }
+
+    return requiredWitnesses;
+  }
 }
