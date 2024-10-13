@@ -1053,25 +1053,29 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     // TODO: handle all fields that requires vkey witnesses
     // TODO: handle native script case
 
-    let requiredWitnesses = 0;
+    let requiredWitnesses: Set<string> = new Set();
     // Handle vkey witnesses from inputs
     const inputs = this.txBody.inputs().values();
     for (let i = 0; i < inputs.length; i++) {
       const input = inputs[i];
       // KeyHash credential type is enum 0
-      if (
-        this.utxoContext.get(input!)?.address().getProps().paymentPart?.type ===
-        0
-      ) {
-        requiredWitnesses++;
+      const addressPaymentPart = this.utxoContext
+        .get(input!)
+        ?.address()
+        .getProps().paymentPart;
+      if (addressPaymentPart?.type === 0) {
+        requiredWitnesses.add(addressPaymentPart.hash);
       }
     }
 
     // Handle required signers
-    if (this.txBody.requiredSigners()) {
-      requiredWitnesses += this.txBody.requiredSigners()!.size();
+    const requiredSigners = this.txBody.requiredSigners()?.values();
+    if (requiredSigners) {
+      for (let i = 0; i < requiredSigners.length; i++) {
+        requiredWitnesses.add(requiredSigners[i]!.toCbor());
+      }
     }
 
-    return requiredWitnesses;
+    return requiredWitnesses.size;
   }
 }
