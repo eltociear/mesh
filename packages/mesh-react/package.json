@@ -31,6 +31,7 @@
   "dependencies": {
     "react": "^18.2.0",
     "@meshsdk/common": "1.7.9",
+    "@meshsdk/provider": "1.7.9",
     "@meshsdk/transaction": "1.7.9",
     "@meshsdk/wallet": "1.7.9"
   },

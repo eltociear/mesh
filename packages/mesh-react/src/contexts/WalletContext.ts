@@ -1,20 +1,21 @@
 import { createContext, useCallback, useState } from "react";
 
-import { BrowserWallet } from "@meshsdk/wallet";
+import { BrowserWallet, MeshWallet } from "@meshsdk/wallet";
 
 interface WalletContext {
   hasConnectedWallet: boolean;
-  connectedWalletInstance: BrowserWallet;
+  connectedWalletInstance: BrowserWallet | MeshWallet;
   connectedWalletName: string;
   connectingWallet: boolean;
   connectWallet?: (walletName: string, extensions?: number[]) => Promise<void>;
   disconnect?: () => void;
+  setWallet: (walletName: string, walletInstance: MeshWallet) => void;
   error?: unknown;
 }
 
 const INITIAL_STATE = {
   walletName: "",
-  walletInstance: {} as BrowserWallet,
+  walletInstance: {} as BrowserWallet | MeshWallet,
 };
 
 export const useWalletStore = () => {
@@ -22,8 +23,9 @@ export const useWalletStore = () => {
 
   const [connectingWallet, setConnectingWallet] = useState<boolean>(false);
 
-  const [connectedWalletInstance, setConnectedWalletInstance] =
-    useState<BrowserWallet>(INITIAL_STATE.walletInstance);
+  const [connectedWalletInstance, setConnectedWalletInstance] = useState<
+    BrowserWallet | MeshWallet
+  >(INITIAL_STATE.walletInstance);
 
   const [connectedWalletName, setConnectedWalletName] = useState<string>(
     INITIAL_STATE.walletName,
@@ -55,6 +57,14 @@ export const useWalletStore = () => {
     setConnectedWalletInstance(INITIAL_STATE.walletInstance);
   }, []);
 
+  const setWallet = useCallback(
+    (walletName: string, walletInstance: MeshWallet) => {
+      setConnectedWalletName(walletName);
+      setConnectedWalletInstance(walletInstance);
+    },
+    [],
+  );
+
   return {
     hasConnectedWallet: INITIAL_STATE.walletName !== connectedWalletName,
     connectedWalletInstance,
@@ -62,6 +72,7 @@ export const useWalletStore = () => {
     connectingWallet,
     connectWallet,
     disconnect,
+    setWallet,
     error,
   };
 };
@@ -71,4 +82,5 @@ export const WalletContext = createContext<WalletContext>({
   connectedWalletInstance: INITIAL_STATE.walletInstance,
   connectedWalletName: INITIAL_STATE.walletName,
   connectingWallet: false,
+  setWallet: () => {},
 });

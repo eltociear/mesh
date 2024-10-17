@@ -38,10 +38,6 @@ function Left() {
   codeSnippet2 += `  .metadataValue("721", metadata)\n`;
   codeSnippet2 += `  .changeAddress(changeAddress)\n`;
   codeSnippet2 += `  .selectUtxosFrom(utxos);\n`;
-  codeSnippet2 += `\n`;
-  codeSnippet2 += `const unsignedTx = await txBuilder.complete();\n`;
-  codeSnippet2 += `const signedTx = await wallet.signTx(unsignedTx);\n`;
-  codeSnippet2 += `const txHash = await wallet.submitTx(signedTx);\n`;
 
   return (
     <>
@@ -53,8 +49,9 @@ function Left() {
       </p>
       <Codeblock data={codeSnippet1} />
       <p>
-        You appending the metadata into one object and pass it to{" "}
-        <code>metadataValue()</code> method.
+        You append the metadata of each token into one object (
+        <code>metadata</code>) and pass it to <code>metadataValue()</code>{" "}
+        method once to set the metadata for all the tokens.
       </p>
       <Codeblock data={codeSnippet2} />
     </>

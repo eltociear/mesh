@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { KoiosProvider, MeshWallet } from "@meshsdk/core";
+
 import Button from "../common/button";
 import { useWallet, useWalletList } from "../hooks";
 import { MenuItem } from "./menu-item";
@@ -27,7 +29,8 @@ export const CardanoWallet = ({
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [hideMenuList, setHideMenuList] = useState(true);
 
-  const { connect, connecting, connected, disconnect, name } = useWallet();
+  const { connect, connecting, connected, disconnect, setWallet, name } =
+    useWallet();
   const wallets = useWalletList({ metamask });
 
   useEffect(() => {
@@ -39,6 +42,54 @@ export const CardanoWallet = ({
   useEffect(() => {
     setIsDarkMode(isDark);
   }, [isDark]);
+
+  function connectLocalWallet() {
+    const storageMeshWallet = localStorage.getItem("mesh-wallet");
+    console.log("storageMeshWallet", storageMeshWallet);
+
+    const blockchainProvider = new KoiosProvider("api");
+
+    if (storageMeshWallet !== null) {
+      // const wallet = JSON.parse(storageMeshWallet);
+
+      const wallet = new MeshWallet({
+        networkId: 0, // 0: testnet, 1: mainnet
+        fetcher: blockchainProvider,
+        submitter: blockchainProvider,
+        key: {
+          type: "mnemonic",
+          words: [
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+            "solution",
+          ],
+        },
+      });
+
+      setWallet("Mesh", wallet);
+    }
+  }
 
   return (
     <div
@@ -76,19 +127,19 @@ export const CardanoWallet = ({
                 active={name === wallet.id}
               />
             ))}
-            {/* <MenuItem
+            <MenuItem
               icon={
                 isDarkMode
                   ? `https://meshjs.dev/logo-mesh/white/logo-mesh-white-128x128.png`
                   : `https://meshjs.dev/logo-mesh/black/logo-mesh-black-128x128.png`
               }
-              label={'Local'}
+              label={"Mesh"}
               action={() => {
                 connectLocalWallet();
                 setHideMenuList(!hideMenuList);
               }}
               active={false}
-            /> */}
+            />
           </>
         ) : wallets.length === 0 ? (
           <span>No Wallet Found</span>

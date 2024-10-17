@@ -1,5 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 
+import { BrowserWallet, MeshWallet } from "@meshsdk/wallet";
+
 import { WalletContext } from "../contexts";
 
 export const useNetwork = () => {
@@ -9,7 +11,12 @@ export const useNetwork = () => {
 
   useEffect(() => {
     if (hasConnectedWallet) {
-      connectedWalletInstance.getNetworkId().then(setNetworkId);
+      if (connectedWalletInstance instanceof BrowserWallet) {
+        connectedWalletInstance.getNetworkId().then(setNetworkId);
+      }
+      if (connectedWalletInstance instanceof MeshWallet) {
+        setNetworkId(connectedWalletInstance.getNetworkId());
+      }
     }
   }, [connectedWalletName]);
 

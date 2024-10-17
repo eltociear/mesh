@@ -13,7 +13,6 @@ import {
   resolveFingerprint,
   toUTF8,
 } from "@meshsdk/common";
-import { resolvePrivateKey } from "@meshsdk/core-csl"; // todo replace this with cst when its implemented
 import {
   Address,
   buildBaseAddress,
@@ -24,6 +23,7 @@ import {
   Ed25519KeyHashHex,
   fromTxUnspentOutput,
   Hash28ByteBase16,
+  resolvePrivateKey,
   toAddress,
   toTxUnspentOutput,
   TransactionUnspentOutput,
@@ -517,6 +517,37 @@ export class MeshWallet implements IInitiator, ISigner, ISubmitter {
     return txHash;
   }
 
+  async getDRep(): Promise<
+    | {
+        publicKey: string;
+        publicKeyHash: string;
+        dRepIDCip105: string;
+      }
+    | undefined
+  > {
+    throw new Error("Method not implemented.");
+  }
+
+  async getRegisteredPubStakeKeys(): Promise<
+    | {
+        pubStakeKeys: string[];
+        pubStakeKeyHashes: string[];
+      }
+    | undefined
+  > {
+    throw new Error("Method not implemented.");
+  }
+
+  async getUnregisteredPubStakeKeys(): Promise<
+    | {
+        pubStakeKeys: string[];
+        pubStakeKeyHashes: string[];
+      }
+    | undefined
+  > {
+    throw new Error("Method not implemented.");
+  }
+
   getPubDRepKey(): {
     pubDRepKey: string | undefined;
     dRepIDBech32: string | undefined;
@@ -527,6 +558,10 @@ export class MeshWallet implements IInitiator, ISigner, ISubmitter {
       dRepIDBech32: this.addresses.dRepIDBech32,
       dRepIDHash: this.addresses.dRepIDHash,
     };
+  }
+
+  async getExtensions(): Promise<number[]> {
+    return [];
   }
 
   /**
