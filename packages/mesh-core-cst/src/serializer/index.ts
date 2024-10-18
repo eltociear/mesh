@@ -35,6 +35,7 @@ import {
   AssetId,
   AssetName,
   CredentialType,
+  CertificateType,
   Datum,
   DatumHash,
   Ed25519PublicKeyHex,
@@ -47,9 +48,11 @@ import {
   PlutusV2Script,
   PlutusV3Script,
   PolicyId,
+  PoolId,
   Redeemer,
   Redeemers,
   RedeemerTag,
+  RewardAccount,
   Script,
   Slot,
   TokenMap,
@@ -230,6 +233,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
       mints,
       changeAddress,
       // certificates,
+      // withdrawals,
       validityRange,
       requiredSignatures,
       // metadata,
@@ -1050,10 +1054,14 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
   };
 
   private countNumberOfRequiredWitnesses(): number {
-    // TODO: handle all fields that requires vkey witnesses
+    // TODO: handle all fields that requires vkey witnesses:
+    // Missing: [Votes, Proposals]
     // TODO: handle native script case
 
+    // Use a set of payment key hashes to count, since there
+    // could be multiple inputs with the same payment keys
     let requiredWitnesses: Set<string> = new Set();
+
     // Handle vkey witnesses from inputs
     const inputs = this.txBody.inputs().values();
     for (let i = 0; i < inputs.length; i++) {
@@ -1065,6 +1073,117 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
         .getProps().paymentPart;
       if (addressPaymentPart?.type === 0) {
         requiredWitnesses.add(addressPaymentPart.hash);
+      }
+    }
+
+    // Handle vkey witnesses from collateral inputs
+    const collateralInputs = this.txBody.collateral()?.values();
+    if (collateralInputs) {
+      for (let i = 0; i < collateralInputs?.length; i++) {
+        const collateralInput = collateralInputs[i];
+        const addressPaymentPart = this.utxoContext
+          .get(collateralInput!)
+          ?.address()
+          .getProps().paymentPart;
+        if (addressPaymentPart?.type === 0) {
+          requiredWitnesses.add(addressPaymentPart.hash);
+        }
+      }
+    }
+
+    // Handle vkey witnesses from withdrawals
+    const withdrawalKeys = this.txBody.withdrawals()?.keys();
+    if (withdrawalKeys) {
+      for (let withdrawalKey of withdrawalKeys) {
+        requiredWitnesses.add(RewardAccount.toHash(withdrawalKey));
+      }
+    }
+
+    // Handle vkey witnesses from certs
+    const certs = this.txBody.certs()?.values();
+    if (certs) {
+      for (let cert of certs) {
+        const coreCert = cert.toCore();
+        switch (coreCert.__typename) {
+          case CertificateType.StakeRegistration: {
+            requiredWitnesses.add(coreCert.stakeCredential.hash);
+            break;
+          }
+          case CertificateType.StakeDeregistration: {
+            requiredWitnesses.add(coreCert.stakeCredential.hash);
+            break;
+          }
+          case CertificateType.PoolRegistration: {
+            for (let owner of coreCert.poolParameters.owners) {
+              requiredWitnesses.add(RewardAccount.toHash(owner));
+            }
+            requiredWitnesses.add(PoolId.toKeyHash(coreCert.poolParameters.id));
+            break;
+          }
+          case CertificateType.PoolRetirement: {
+            requiredWitnesses.add(PoolId.toKeyHash(coreCert.poolId));
+            break;
+          }
+          case CertificateType.StakeDelegation: {
+            requiredWitnesses.add(coreCert.stakeCredential.hash);
+            break;
+          }
+          case CertificateType.MIR:
+            // MIR certs don't contain witnesses
+            break;
+          case CertificateType.GenesisKeyDelegation: {
+            requiredWitnesses.add(coreCert.genesisDelegateHash);
+            break;
+          }
+          case CertificateType.Registration: {
+            requiredWitnesses.add(coreCert.stakeCredential.hash);
+            break;
+          }
+          case CertificateType.Unregistration: {
+            requiredWitnesses.add(coreCert.stakeCredential.hash);
+            break;
+          }
+          case CertificateType.VoteDelegation: {
+            requiredWitnesses.add(coreCert.stakeCredential.hash);
+            break;
+          }
+          case CertificateType.StakeVoteDelegation: {
+            requiredWitnesses.add(coreCert.stakeCredential.hash);
+            break;
+          }
+          case CertificateType.StakeRegistrationDelegation: {
+            requiredWitnesses.add(coreCert.stakeCredential.hash);
+            break;
+          }
+          case CertificateType.VoteRegistrationDelegation: {
+            requiredWitnesses.add(coreCert.stakeCredential.hash);
+            break;
+          }
+          case CertificateType.StakeVoteRegistrationDelegation: {
+            requiredWitnesses.add(coreCert.stakeCredential.hash);
+            break;
+          }
+          case CertificateType.AuthorizeCommitteeHot: {
+            requiredWitnesses.add(coreCert.hotCredential.hash);
+            break;
+          }
+          case CertificateType.ResignCommitteeCold: {
+            requiredWitnesses.add(coreCert.coldCredential.hash);
+            break;
+          }
+          case CertificateType.RegisterDelegateRepresentative: {
+            requiredWitnesses.add(coreCert.dRepCredential.hash);
+            break;
+          }
+          case CertificateType.UnregisterDelegateRepresentative: {
+            requiredWitnesses.add(coreCert.dRepCredential.hash);
+            break;
+          }
+          case CertificateType.UpdateDelegateRepresentative: {
+            requiredWitnesses.add(coreCert.dRepCredential.hash);
+            break;
+          }
+        }
       }
     }
 
