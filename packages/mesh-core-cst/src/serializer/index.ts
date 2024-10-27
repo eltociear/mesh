@@ -932,7 +932,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     this.txBody.setFee(BigInt("10000000"));
     const numberOfRequiredWitnesses = this.countNumberOfRequiredWitnesses();
     const dummyTx = this.createDummyTx(numberOfRequiredWitnesses);
-
+    
     // The calculate fees util will first calculate fee based on
     // length of dummy tx, then calculate fees related to script
     // ref size
@@ -970,8 +970,8 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     const dummyVkeyWitnesses: [Ed25519PublicKeyHex, Ed25519SignatureHex][] = [];
     for (let i = 0; i < numberOfRequiredWitnesses; i++) {
       dummyVkeyWitnesses.push([
-        Ed25519PublicKeyHex("0".repeat(64)),
-        Ed25519SignatureHex("0".repeat(128)),
+        Ed25519PublicKeyHex(String(i).repeat(64)),
+        Ed25519SignatureHex(String(i).repeat(128)),
       ]);
     }
     dummyWitnessSet.setVkeys(
@@ -1207,7 +1207,6 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
         requiredWitnesses.add(requiredSigners[i]!.toCbor());
       }
     }
-
     return requiredWitnesses.size;
   }
 
