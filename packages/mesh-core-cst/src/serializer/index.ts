@@ -38,6 +38,7 @@ import {
   CredentialType,
   Datum,
   DatumHash,
+  Ed25519KeyHashHex,
   Ed25519PublicKeyHex,
   Ed25519SignatureHex,
   ExUnits,
@@ -263,6 +264,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     this.addAllCollateralInputs(collaterals);
     this.addAllReferenceInputs(referenceInputs);
     this.setValidityInterval(validityRange);
+    this.addAllRequiredSignatures(requiredSignatures);
     this.buildWitnessSet();
     this.balanceTx(changeAddress);
     return new Transaction(this.txBody, this.txWitnessSet).toCbor();
@@ -746,6 +748,23 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     }
   };
 
+  private addAllRequiredSignatures = (requiredSignatures: string[]) => {
+    const requiredSigners: Serialization.CborSet<
+      Ed25519KeyHashHex,
+      Serialization.Hash<Ed25519KeyHashHex>
+    > = this.txBody.requiredSigners() ??
+    Serialization.CborSet.fromCore([], Serialization.Hash.fromCore);
+
+    let requiredSignerValues = [...requiredSigners.values()];
+    for (const requiredSigner of requiredSignatures) {
+      requiredSignerValues.push(
+        Serialization.Hash.fromCore(Ed25519KeyHashHex(requiredSigner)),
+      );
+    }
+    requiredSigners.setValues(requiredSignerValues);
+    this.txBody.setRequiredSigners(requiredSigners);
+  };
+
   private buildWitnessSet = () => {
     const inputs = this.txBody.inputs();
     // Search through the inputs, and set each redeemer index to the correct one
@@ -932,7 +951,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     this.txBody.setFee(BigInt("10000000"));
     const numberOfRequiredWitnesses = this.countNumberOfRequiredWitnesses();
     const dummyTx = this.createDummyTx(numberOfRequiredWitnesses);
-    
+
     // The calculate fees util will first calculate fee based on
     // length of dummy tx, then calculate fees related to script
     // ref size
