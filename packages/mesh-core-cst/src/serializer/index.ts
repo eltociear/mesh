@@ -34,8 +34,8 @@ import {
   Address,
   AssetId,
   AssetName,
-  CredentialType,
   CertificateType,
+  CredentialType,
   Datum,
   DatumHash,
   Ed25519PublicKeyHex,
@@ -52,6 +52,11 @@ import {
   Redeemer,
   Redeemers,
   RedeemerTag,
+  RequireAllOf,
+  RequireAnyOf,
+  RequireNOf,
+  RequireSignature,
+  RequireTimeAfter,
   RewardAccount,
   Script,
   Slot,
@@ -1056,7 +1061,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
   private countNumberOfRequiredWitnesses(): number {
     // TODO: handle all fields that requires vkey witnesses:
     // Missing: [Votes, Proposals]
-    // TODO: handle native script case
+    // TODO: handle reference  native script case
 
     // Use a set of payment key hashes to count, since there
     // could be multiple inputs with the same payment keys
@@ -1187,6 +1192,14 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
       }
     }
 
+    // Handle native scripts in provided scripts
+    for (const script of this.scriptsProvided) {
+      let nativeScript = script.asNative();
+      if (nativeScript) {
+        this.addKeyHashesFromNativeScript(nativeScript, requiredWitnesses);
+      }
+    }
+
     // Handle required signers
     const requiredSigners = this.txBody.requiredSigners()?.values();
     if (requiredSigners) {
@@ -1196,5 +1209,52 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     }
 
     return requiredWitnesses.size;
+  }
+
+  private addKeyHashesFromNativeScript(
+    script: NativeScript,
+    keyHashes: Set<String>,
+  ) {
+    const scriptCore = script.toCore();
+    switch (scriptCore.kind) {
+      case RequireSignature: {
+        keyHashes.add(scriptCore.keyHash);
+        return;
+      }
+      case RequireTimeAfter: {
+        return;
+      }
+      case RequireTimeAfter: {
+        return;
+      }
+      case RequireAllOf: {
+        for (const innerScript of scriptCore.scripts) {
+          this.addKeyHashesFromNativeScript(
+            NativeScript.fromCore(innerScript),
+            keyHashes,
+          );
+        }
+        return;
+      }
+      case RequireAnyOf: {
+        for (const innerScript of scriptCore.scripts) {
+          this.addKeyHashesFromNativeScript(
+            NativeScript.fromCore(innerScript),
+            keyHashes,
+          );
+        }
+        return;
+      }
+      case RequireNOf: {
+        for (const innerScript of scriptCore.scripts) {
+          this.addKeyHashesFromNativeScript(
+            NativeScript.fromCore(innerScript),
+            keyHashes,
+          );
+        }
+        return;
+      }
+    }
+    return keyHashes;
   }
 }
