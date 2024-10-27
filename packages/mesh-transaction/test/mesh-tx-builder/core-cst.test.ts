@@ -1,4 +1,8 @@
-import { MeshTxBuilderBody } from "@meshsdk/common";
+import { MeshTxBuilderBody, NativeScript } from "@meshsdk/common";
+import {
+  resolveNativeScriptAddress,
+  serializeNativeScript,
+} from "@meshsdk/core";
 import {
   CardanoSDKSerializer,
   resolveNativeScriptHash,
@@ -220,7 +224,65 @@ describe("Transaction serializer - core-cst", () => {
       .setNetwork("preprod")
       .completeSync();
 
-      console.log(txHex);
-      expect(txHex !== "").toBeTruthy();
+    console.log(txHex);
+    expect(txHex !== "").toBeTruthy();
+  });
+
+  it("native scripts provided should increase fees paid", () => {
+    const serializer = new CardanoSDKSerializer(undefined, true);
+    let mesh = new MeshTxBuilder({ serializer });
+
+    let script: NativeScript = {
+      type: "all",
+      scripts: [
+        {
+          type: "sig",
+          keyHash: "5867c3b8e27840f556ac268b781578b14c5661fc63ee720dbeab663f",
+        },
+        {
+          type: "sig",
+          keyHash: "81bb100eaaab4d1347671d428a94e77d1a844d321aefcb2afe5e8553",
+        },
+        {
+          type: "sig",
+          keyHash: "9e1dc7b577665ac48b8da4b112cb2bb96f7b3994437548746eba3fe8",
+        },
+      ],
+    };
+
+    let txHex = mesh
+      .txIn(
+        "2cb57168ee66b68bd04a0d595060b546edf30c04ae1031b883c9ac797967dd85",
+        2,
+        [{ unit: "lovelace", quantity: "2000000" }],
+        serializeNativeScript(script).address,
+      )
+      .txInScript(serializeNativeScript(script).scriptCbor!)
+      .txOut(
+        "addr_test1vru4e2un2tq50q4rv6qzk7t8w34gjdtw3y2uzuqxzj0ldrqqactxh",
+        [{ unit: "lovelace", quantity: "2000000" }],
+      )
+      .changeAddress(
+        "addr_test1vru4e2un2tq50q4rv6qzk7t8w34gjdtw3y2uzuqxzj0ldrqqactxh",
+      )
+      .selectUtxosFrom([
+        {
+          input: {
+            txHash:
+              "2cb57168ee66b68bd04a0d595060b546edf30c04ae1031b883c9ac797967dd85",
+            outputIndex: 1,
+          },
+          output: {
+            address:
+              "addr_test1vru4e2un2tq50q4rv6qzk7t8w34gjdtw3y2uzuqxzj0ldrqqactxh",
+            amount: [{ unit: "lovelace", quantity: "9891607895" }],
+          },
+        },
+      ])
+      .setNetwork("preprod")
+      .completeSync();
+
+    console.log(txHex);
+    expect(txHex !== "").toBeTruthy();
   });
 });
