@@ -243,10 +243,6 @@ describe("Transaction serializer - core-cst", () => {
           type: "sig",
           keyHash: "81bb100eaaab4d1347671d428a94e77d1a844d321aefcb2afe5e8553",
         },
-        {
-          type: "sig",
-          keyHash: "9e1dc7b577665ac48b8da4b112cb2bb96f7b3994437548746eba3fe8",
-        },
       ],
     };
 
@@ -279,6 +275,9 @@ describe("Transaction serializer - core-cst", () => {
           },
         },
       ])
+      .requiredSignerHash(
+        "9e1dc7b577665ac48b8da4b112cb2bb96f7b3994437548746eba3fe8",
+      )
       .setNetwork("preprod")
       .completeSync();
 
