@@ -78,40 +78,11 @@ import { empty, mergeValue, negatives, subValue } from "../utils/value";
 
 export class CardanoSDKSerializer implements IMeshTxSerializer {
   verbose: boolean;
-  private txBody: TransactionBody;
-  private txWitnessSet: TransactionWitnessSet;
-
-  private utxoContext: Map<TransactionInput, TransactionOutput> = new Map<
-    TransactionInput,
-    TransactionOutput
-  >();
-
-  private redeemerContext: Map<TransactionInput, Redeemer> = new Map<
-    TransactionInput,
-    Redeemer
-  >();
-
-  private scriptsProvided: Set<Script> = new Set<Script>();
-  private datumsProvided: Set<PlutusData> = new Set<PlutusData>();
-  private usedLanguages: Record<PlutusLanguageVersion, boolean> = {
-    [0]: false,
-    [1]: false,
-    [2]: false,
-  };
-  private protocolParams: Protocol;
-  private refScriptSize: number;
+  protocolParams: Protocol;
 
   constructor(protocolParams?: Protocol, verbose = false) {
     this.protocolParams = protocolParams || DEFAULT_PROTOCOL_PARAMETERS;
     this.verbose = verbose;
-    this.txBody = new TransactionBody(
-      Serialization.CborSet.fromCore([], TransactionInput.fromCore),
-      [],
-      BigInt(0),
-      undefined,
-    );
-    this.refScriptSize = 0;
-    this.txWitnessSet = new TransactionWitnessSet();
   }
 
   serializeRewardAddress(
@@ -231,43 +202,12 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     txBuilderBody: MeshTxBuilderBody,
     protocolParams?: Protocol,
   ): string => {
-    const {
-      inputs,
-      outputs,
-      collaterals,
-      referenceInputs,
-      mints,
-      changeAddress,
-      // certificates,
-      // withdrawals,
-      validityRange,
-      requiredSignatures,
-      // metadata,
-    } = txBuilderBody;
-
     if (this.verbose) {
       console.log("txBodyJson", JSON.stringify(txBuilderBody));
     }
 
-    mints.sort((a, b) => a.policyId.localeCompare(b.policyId));
-    inputs.sort((a, b) => {
-      if (a.txIn.txHash === b.txIn.txHash) {
-        return a.txIn.txIndex - b.txIn.txIndex;
-      } else {
-        return a.txIn.txHash.localeCompare(b.txIn.txHash);
-      }
-    });
-
-    this.addAllInputs(inputs);
-    this.addAllOutputs(this.sanitizeOutputs(outputs));
-    this.addAllMints(mints);
-    this.addAllCollateralInputs(collaterals);
-    this.addAllReferenceInputs(referenceInputs);
-    this.setValidityInterval(validityRange);
-    this.addAllRequiredSignatures(requiredSignatures);
-    this.buildWitnessSet();
-    this.balanceTx(changeAddress);
-    return new Transaction(this.txBody, this.txWitnessSet).toCbor();
+    const serializerCore = new CardanoSDKSerializerCore(protocolParams);
+    return serializerCore.coreSerializeTxBody(txBuilderBody, protocolParams);
   };
 
   addSigningKeys = (txHex: string, signingKeys: string[]): string => {
@@ -306,6 +246,82 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     );
     cardanoTx.setWitnessSet(currentWitnessSet);
     return cardanoTx.toCbor();
+  };
+}
+
+class CardanoSDKSerializerCore {
+  public txBody: TransactionBody;
+  public txWitnessSet: TransactionWitnessSet;
+
+  private utxoContext: Map<TransactionInput, TransactionOutput> = new Map<
+    TransactionInput,
+    TransactionOutput
+  >();
+
+  private redeemerContext: Map<TransactionInput, Redeemer> = new Map<
+    TransactionInput,
+    Redeemer
+  >();
+
+  private scriptsProvided: Set<Script> = new Set<Script>();
+  private datumsProvided: Set<PlutusData> = new Set<PlutusData>();
+  private usedLanguages: Record<PlutusLanguageVersion, boolean> = {
+    [0]: false,
+    [1]: false,
+    [2]: false,
+  };
+  private protocolParams: Protocol;
+  private refScriptSize: number;
+
+  constructor(protocolParams?: Protocol) {
+    this.protocolParams = protocolParams || DEFAULT_PROTOCOL_PARAMETERS;
+    this.txBody = new TransactionBody(
+      Serialization.CborSet.fromCore([], TransactionInput.fromCore),
+      [],
+      BigInt(0),
+      undefined,
+    );
+    this.refScriptSize = 0;
+    this.txWitnessSet = new TransactionWitnessSet();
+  }
+
+  coreSerializeTxBody = (
+    txBuilderBody: MeshTxBuilderBody,
+    protocolParams?: Protocol,
+  ): string => {
+    const {
+      inputs,
+      outputs,
+      collaterals,
+      referenceInputs,
+      mints,
+      changeAddress,
+      // certificates,
+      // withdrawals,
+      validityRange,
+      requiredSignatures,
+      // metadata,
+    } = txBuilderBody;
+
+    mints.sort((a, b) => a.policyId.localeCompare(b.policyId));
+    inputs.sort((a, b) => {
+      if (a.txIn.txHash === b.txIn.txHash) {
+        return a.txIn.txIndex - b.txIn.txIndex;
+      } else {
+        return a.txIn.txHash.localeCompare(b.txIn.txHash);
+      }
+    });
+
+    this.addAllInputs(inputs);
+    this.addAllOutputs(this.sanitizeOutputs(outputs));
+    this.addAllMints(mints);
+    this.addAllCollateralInputs(collaterals);
+    this.addAllReferenceInputs(referenceInputs);
+    this.setValidityInterval(validityRange);
+    this.addAllRequiredSignatures(requiredSignatures);
+    this.buildWitnessSet();
+    this.balanceTx(changeAddress);
+    return new Transaction(this.txBody, this.txWitnessSet).toCbor();
   };
 
   private sanitizeOutputs = (outputs: Output[]): Output[] => {
