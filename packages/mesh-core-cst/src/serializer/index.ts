@@ -1001,7 +1001,9 @@ class CardanoSDKSerializerCore {
   };
 
   private createDummyTx = (numberOfRequiredWitnesses: number): Transaction => {
-    let dummyWitnessSet = new TransactionWitnessSet();
+    let dummyWitnessSet = TransactionWitnessSet.fromCbor(
+      HexBlob(this.txWitnessSet.toCbor()),
+    );
     const dummyVkeyWitnesses: [Ed25519PublicKeyHex, Ed25519SignatureHex][] = [];
     for (let i = 0; i < numberOfRequiredWitnesses; i++) {
       dummyVkeyWitnesses.push([
