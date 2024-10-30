@@ -1,5 +1,5 @@
 /* eslint-disable unicorn/number-literal-case */
-import { Cardano, Serialization } from "@cardano-sdk/core";
+import { Serialization } from "@cardano-sdk/core";
 import * as Crypto from "@cardano-sdk/crypto";
 import { Hash32ByteBase16 } from "@cardano-sdk/crypto";
 import { HexBlob } from "@cardano-sdk/util";

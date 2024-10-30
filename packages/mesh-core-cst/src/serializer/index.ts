@@ -1,4 +1,4 @@
-import { Serialization, TxCBOR } from "@cardano-sdk/core";
+import { Serialization } from "@cardano-sdk/core";
 import { HexBlob } from "@cardano-sdk/util";
 
 import {
@@ -8,6 +8,7 @@ import {
   DEFAULT_PROTOCOL_PARAMETERS,
   DEFAULT_V1_COST_MODEL_LIST,
   DEFAULT_V2_COST_MODEL_LIST,
+  DEFAULT_V3_COST_MODEL_LIST,
   DeserializedAddress,
   DeserializedScript,
   IDeserializer,
@@ -178,7 +179,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
     },
     tx: {
       resolveTxHash: function (txHex: string): string {
-        return Transaction.fromCbor(TxCBOR(txHex)).getId();
+        return Transaction.fromCbor(Serialization.TxCBOR(txHex)).getId();
       },
     },
     data: {
@@ -211,7 +212,7 @@ export class CardanoSDKSerializer implements IMeshTxSerializer {
   };
 
   addSigningKeys = (txHex: string, signingKeys: string[]): string => {
-    let cardanoTx = Transaction.fromCbor(TxCBOR(txHex));
+    let cardanoTx = Transaction.fromCbor(Serialization.TxCBOR(txHex));
     let currentWitnessSet = cardanoTx.witnessSet();
     let currentWitnessSetVkeys = currentWitnessSet.vkeys();
     let currentWitnessSetVkeysValues: Serialization.VkeyWitness[] =
@@ -864,6 +865,9 @@ class CardanoSDKSerializerCore {
     let costModelV2 = Serialization.CostModel.newPlutusV2(
       DEFAULT_V2_COST_MODEL_LIST,
     );
+    let costModelV3 = Serialization.CostModel.newPlutusV3(
+      DEFAULT_V3_COST_MODEL_LIST,
+    );
     let costModels = new Serialization.Costmdls();
 
     if (this.usedLanguages[PlutusLanguageVersion.V1]) {
@@ -873,7 +877,7 @@ class CardanoSDKSerializerCore {
       costModels.insert(costModelV2);
     }
     if (this.usedLanguages[PlutusLanguageVersion.V3]) {
-      // TODO: insert v3 cost models after conway HF
+      costModels.insert(costModelV3);
     }
     let scriptDataHash = hashScriptData(
       costModels,
