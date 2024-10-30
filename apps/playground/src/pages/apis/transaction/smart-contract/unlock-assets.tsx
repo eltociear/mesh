@@ -15,6 +15,7 @@ import LiveCodeDemo from "~/components/sections/live-code-demo";
 import TwoColumnsScroll from "~/components/sections/two-columns-scroll";
 import Codeblock from "~/components/text/codeblock";
 import { demoAsset, demoPlutusAlwaysSucceedScript } from "~/data/cardano";
+import { getTransaction } from "../common";
 
 export default function ContractUnlockAssets() {
   return (
@@ -185,16 +186,14 @@ function Right() {
     }
 
     // transaction
-
     const address = await wallet.getChangeAddress();
 
-    const tx = new Transaction({ initiator: wallet })
-      .setNetwork("preprod")
-      .redeemValue({
-        value: assetUtxo,
-        script: script as PlutusScript,
-        datum: userInput2,
-      })
+    const tx = getTransaction(wallet);
+    tx.redeemValue({
+      value: assetUtxo,
+      script: script as PlutusScript,
+      datum: userInput2,
+    })
       .sendValue(address, assetUtxo)
       .setRequiredSigners([address]);
 

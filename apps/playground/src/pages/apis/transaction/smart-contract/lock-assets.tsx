@@ -1,11 +1,6 @@
 import { useState } from "react";
 
-import {
-  Asset,
-  PlutusScript,
-  serializePlutusScript,
-  Transaction,
-} from "@meshsdk/core";
+import { Asset, PlutusScript, serializePlutusScript } from "@meshsdk/core";
 import { useWallet } from "@meshsdk/react";
 
 import Input from "~/components/form/input";
@@ -15,6 +10,7 @@ import LiveCodeDemo from "~/components/sections/live-code-demo";
 import TwoColumnsScroll from "~/components/sections/two-columns-scroll";
 import Codeblock from "~/components/text/codeblock";
 import { demoAsset, demoPlutusAlwaysSucceedScript } from "~/data/cardano";
+import { getTransaction } from "../common";
 
 export default function ContractLockAssets() {
   return (
@@ -135,7 +131,7 @@ function Right() {
     ];
 
     // transaction
-    const tx = new Transaction({ initiator: wallet }).setNetwork("preprod");
+    const tx = getTransaction(wallet);
     tx.sendAssets(
       {
         address: scriptAddress,

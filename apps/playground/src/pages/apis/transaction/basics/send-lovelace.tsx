@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import { Transaction } from "@meshsdk/core";
 import { useWallet } from "@meshsdk/react";
 
 import Input from "~/components/form/input";
@@ -9,6 +8,7 @@ import LiveCodeDemo from "~/components/sections/live-code-demo";
 import TwoColumnsScroll from "~/components/sections/two-columns-scroll";
 import Codeblock from "~/components/text/codeblock";
 import { demoAddresses } from "~/data/cardano";
+import { getTransaction } from "../common";
 
 export default function TransactionSendLovelace() {
   return (
@@ -40,12 +40,8 @@ function Right() {
   const [amount, setAmount] = useState<string>("1000000");
 
   async function runDemo() {
-    const tx = new Transaction({
-      initiator: wallet,
-      verbose: true,
-    })
-      .setNetwork("preprod")
-      .sendLovelace(address, amount);
+    const tx = getTransaction(wallet);
+    tx.sendLovelace(address, amount);
 
     const unsignedTx = await tx.build();
     const signedTx = await wallet.signTx(unsignedTx);

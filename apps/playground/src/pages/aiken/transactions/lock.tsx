@@ -124,7 +124,9 @@ function Right() {
       fields: [hash],
     };
 
-    const tx = new Transaction({ initiator: wallet }).setNetwork("preprod");
+    const tx = new Transaction({
+      initiator: wallet,
+    });
     tx.sendLovelace(
       {
         address: scriptAddress,

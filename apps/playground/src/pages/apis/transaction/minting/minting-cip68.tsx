@@ -6,7 +6,6 @@ import {
   mTxOutRef,
   PlutusScript,
   resolvePlutusScriptAddress,
-  Transaction,
 } from "@meshsdk/core";
 import { applyParamsToScript } from "@meshsdk/core-csl";
 import { useWallet } from "@meshsdk/react";
@@ -20,6 +19,7 @@ import {
   demoPlutusAlwaysSucceedScript,
   oneTimeMintingPolicy,
 } from "~/data/cardano";
+import { getTransaction } from "../common";
 
 export default function MintingCip68() {
   return (
@@ -137,10 +137,8 @@ function Right() {
       version: "V2",
     };
 
-    const tx = new Transaction({ initiator: wallet })
-      .setNetwork("preprod")
-      .setTxInputs([utxos[0]!])
-      .mintAsset(script, cip68Token, redeemer);
+    const tx = getTransaction(wallet);
+    tx.setTxInputs([utxos[0]!]).mintAsset(script, cip68Token, redeemer);
 
     const unsignedTx = await tx.build();
     const signedTx = await wallet.signTx(unsignedTx);

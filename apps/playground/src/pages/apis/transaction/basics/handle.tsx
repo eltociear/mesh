@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Transaction } from "@meshsdk/core";
+import { getTransaction } from "../common";
 import { useWallet } from "@meshsdk/react";
 
 import { getProvider } from "~/components/cardano/mesh-wallet";
@@ -50,7 +50,7 @@ function Right() {
     const blockchainprovider = getProvider("mainnet");
     const address = await blockchainprovider.fetchHandleAddress(handle);
 
-    const tx = new Transaction({ initiator: wallet }).setNetwork("preprod");
+    const tx = getTransaction(wallet);
     tx.sendLovelace(address, amount);
 
     const unsignedTx = await tx.build();

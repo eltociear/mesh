@@ -144,14 +144,15 @@ function Right() {
 
     const redeemer = { data: { alternative: 0, fields: ["Hello, World!"] } };
 
-    const tx = new Transaction({ initiator: wallet })
-      .setNetwork("preprod")
-      .redeemValue({
-        value: assetUtxo,
-        script: script,
-        datum: datum,
-        redeemer: redeemer,
-      })
+    const tx = new Transaction({
+      initiator: wallet,
+    });
+    tx.redeemValue({
+      value: assetUtxo,
+      script: script,
+      datum: datum,
+      redeemer: redeemer,
+    })
       .sendValue(address, assetUtxo)
       .setRequiredSigners([address]);
 

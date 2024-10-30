@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Transaction } from "@meshsdk/core";
+import { getTransaction } from "../common";
 import { useWallet } from "@meshsdk/react";
 
 import Input from "~/components/form/input";
@@ -53,7 +53,7 @@ function Right() {
       throw "No address found";
     }
 
-    const tx = new Transaction({ initiator: wallet }).setNetwork("preprod");
+    const tx = getTransaction(wallet);
     tx.withdrawRewards(rewardAddress, userInput);
 
     const unsignedTx = await tx.build();

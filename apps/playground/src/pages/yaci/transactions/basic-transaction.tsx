@@ -84,7 +84,9 @@ function Right() {
       },
     });
 
-    const tx = new Transaction({ initiator: wallet }).setNetwork("preprod");
+    const tx = new Transaction({
+      initiator: wallet,
+    });
     tx.sendLovelace(userInput, "1000000");
 
     const unsignedTx = await tx.build();

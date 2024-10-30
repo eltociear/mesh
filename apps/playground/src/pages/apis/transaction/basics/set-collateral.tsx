@@ -1,4 +1,4 @@
-import { Transaction } from "@meshsdk/core";
+import { getTransaction } from "../common";
 import { useWallet } from "@meshsdk/react";
 
 import LiveCodeDemo from "~/components/sections/live-code-demo";
@@ -32,7 +32,7 @@ function Right() {
     const utxo = (await wallet.getUtxos())[0];
 
     if (utxo) {
-      const tx = new Transaction({ initiator: wallet }).setNetwork("preprod");
+      const tx = getTransaction(wallet);
       tx.setCollateral([utxo]);
 
       const unsignedTx = await tx.build();

@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { AssetMetadata, Mint, PlutusScript, Transaction } from "@meshsdk/core";
+import { AssetMetadata, Mint, PlutusScript } from "@meshsdk/core";
 import { useWallet } from "@meshsdk/react";
 
 import Input from "~/components/form/input";
@@ -13,6 +13,7 @@ import {
   demoAssetMetadata,
   demoPlutusMintingScript,
 } from "~/data/cardano";
+import { getTransaction } from "../common";
 
 export default function MintingPlutusScript() {
   const [userInput, setUserInput] = useState<string>("mesh");
@@ -122,10 +123,8 @@ function Right(userInput: string, setUserInput: (value: string) => void) {
       data: { alternative: 0, fields: [userInput] },
     };
 
-    const tx = new Transaction({ initiator: wallet })
-      .setNetwork("preprod")
-      .mintAsset(script, asset, redeemer)
-      .setRequiredSigners([address]);
+    const tx = getTransaction(wallet);
+    tx.mintAsset(script, asset, redeemer).setRequiredSigners([address]);
 
     const unsignedTx = await tx.build();
     const signedTx = await wallet.signTx(unsignedTx, true);

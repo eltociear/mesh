@@ -1,4 +1,4 @@
-import { Transaction } from "@meshsdk/core";
+import { getTransaction } from "../common";
 import { useWallet } from "@meshsdk/react";
 
 import LiveCodeDemo from "~/components/sections/live-code-demo";
@@ -33,7 +33,7 @@ function Right() {
   const { wallet, connected } = useWallet();
 
   async function runDemo() {
-    const tx = new Transaction({ initiator: wallet }).setNetwork("preprod");
+    const tx = getTransaction(wallet);
     tx.setRequiredSigners(await wallet.getUsedAddresses());
 
     const unsignedTx = await tx.build();

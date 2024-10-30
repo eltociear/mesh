@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Transaction } from "@meshsdk/core";
+import { getTransaction } from "../common";
 import { useWallet } from "@meshsdk/react";
 
 import Input from "~/components/form/input";
@@ -40,7 +40,7 @@ function Right() {
   );
 
   async function runDemo() {
-    const tx = new Transaction({ initiator: wallet }).setNetwork("preprod");
+    const tx = getTransaction(wallet);
     tx.setMetadata(0, message);
 
     const unsignedTx = await tx.build();

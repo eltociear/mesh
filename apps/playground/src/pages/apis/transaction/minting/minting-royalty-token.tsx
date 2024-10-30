@@ -1,11 +1,6 @@
 import { useState } from "react";
 
-import {
-  ForgeScript,
-  Mint,
-  RoyaltiesStandard,
-  Transaction,
-} from "@meshsdk/core";
+import { ForgeScript, Mint, RoyaltiesStandard } from "@meshsdk/core";
 import { useWallet } from "@meshsdk/react";
 
 import Input from "~/components/form/input";
@@ -15,6 +10,7 @@ import LiveCodeDemo from "~/components/sections/live-code-demo";
 import TwoColumnsScroll from "~/components/sections/two-columns-scroll";
 import Codeblock from "~/components/text/codeblock";
 import { demoAddresses } from "~/data/cardano";
+import { getTransaction } from "../common";
 
 export default function MintingRoyaltyToken() {
   return (
@@ -90,7 +86,7 @@ function Right() {
 
     const forgingScript = ForgeScript.withOneSignature(address);
 
-    const tx = new Transaction({ initiator: wallet }).setNetwork("preprod");
+    const tx = getTransaction(wallet);
 
     const _assetMetadata: RoyaltiesStandard = {
       rate: userInput,

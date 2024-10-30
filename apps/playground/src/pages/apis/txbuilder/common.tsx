@@ -1,4 +1,5 @@
 import { MeshTxBuilder } from "@meshsdk/core";
+import { CardanoSDKSerializer } from "@meshsdk/core-cst";
 
 import { getProvider } from "~/components/cardano/mesh-wallet";
 
@@ -8,6 +9,7 @@ export function getTxBuilder() {
     fetcher: blockchainProvider,
     evaluator: blockchainProvider,
     verbose: true,
+    serializer: new CardanoSDKSerializer(),
   });
   txBuilder.setNetwork("preprod");
   return txBuilder;

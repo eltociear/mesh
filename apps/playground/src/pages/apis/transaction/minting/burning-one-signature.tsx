@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { Asset, ForgeScript, Transaction } from "@meshsdk/core";
+import { Asset, ForgeScript } from "@meshsdk/core";
 import { useWallet } from "@meshsdk/react";
 
 import Input from "~/components/form/input";
@@ -9,6 +9,7 @@ import LiveCodeDemo from "~/components/sections/live-code-demo";
 import TwoColumnsScroll from "~/components/sections/two-columns-scroll";
 import Codeblock from "~/components/text/codeblock";
 import { demoAsset, demoAssetId } from "~/data/cardano";
+import { getTransaction } from "../common";
 
 export default function BurningOneSignature() {
   const [userInput, setUserInput] = useState<string>(demoAsset);
@@ -109,7 +110,7 @@ function Right(userInput: string, setUserInput: (value: string) => void) {
     };
 
     // create transaction
-    const tx = new Transaction({ initiator: wallet }).setNetwork("preprod");
+    const tx = getTransaction(wallet);
     tx.burnAsset(forgingScript, asset);
 
     const unsignedTx = await tx.build();

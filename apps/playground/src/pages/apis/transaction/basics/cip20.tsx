@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import { Transaction } from "@meshsdk/core";
 import { useWallet } from "@meshsdk/react";
 
 import Textarea from "~/components/form/textarea";
@@ -8,6 +7,7 @@ import InputTable from "~/components/sections/input-table";
 import LiveCodeDemo from "~/components/sections/live-code-demo";
 import TwoColumnsScroll from "~/components/sections/two-columns-scroll";
 import Codeblock from "~/components/text/codeblock";
+import { getTransaction } from "../common";
 
 export default function TransactionCip20() {
   return (
@@ -54,7 +54,7 @@ function Right() {
   );
 
   async function runDemo() {
-    const tx = new Transaction({ initiator: wallet }).setNetwork("preprod");
+    const tx = getTransaction(wallet);
     tx.setMetadata(674, {
       msg: message.split("\n"),
     });

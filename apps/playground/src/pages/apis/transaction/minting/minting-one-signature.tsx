@@ -1,4 +1,4 @@
-import { AssetMetadata, ForgeScript, Mint, Transaction } from "@meshsdk/core";
+import { AssetMetadata, ForgeScript, Mint } from "@meshsdk/core";
 import { useWallet } from "@meshsdk/react";
 
 import Link from "~/components/link";
@@ -6,6 +6,7 @@ import LiveCodeDemo from "~/components/sections/live-code-demo";
 import TwoColumnsScroll from "~/components/sections/two-columns-scroll";
 import Codeblock from "~/components/text/codeblock";
 import { demoAddresses, demoAssetMetadata } from "~/data/cardano";
+import { getTransaction } from "../common";
 
 export default function MintingOneSignature() {
   return (
@@ -102,8 +103,7 @@ function Right() {
       recipient: address,
     };
 
-    const tx = new Transaction({ initiator: wallet });
-    tx.setNetwork("preprod");
+    const tx = getTransaction(wallet);
     tx.mintAsset(forgingScript, asset);
 
     const unsignedTx = await tx.build();

@@ -1,4 +1,17 @@
+import { BrowserWallet, Transaction } from "@meshsdk/core";
+import { CardanoSDKSerializer } from "@meshsdk/core-cst";
+
 import Codeblock from "~/components/text/codeblock";
+
+export function getTransaction(wallet: BrowserWallet) {
+  const tx = new Transaction({
+    initiator: wallet,
+    verbose: true,
+    serializer: new CardanoSDKSerializer(),
+  });
+  tx.setNetwork("preprod");
+  return tx;
+}
 
 export function Intro() {
   let example = ``;
