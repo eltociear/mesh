@@ -545,6 +545,12 @@ export class MeshWallet implements IInitiator, ISigner, ISubmitter {
     return mnemonic;
   }
 
+  /**
+   * A helper function to get the address object associated with the wallet.
+   *
+   * @param wallet a Mesh Wallet instance
+   * @returns an Address object
+   */
   private getAddressesFromWallet(wallet: EmbeddedWallet) {
     const account = wallet.getAccount(this._accountIndex, this._keyIndex);
 
@@ -562,6 +568,12 @@ export class MeshWallet implements IInitiator, ISigner, ISubmitter {
     };
   }
 
+  /**
+   * A helper function to convert bech32 address to an address object.
+   *
+   * @param address a bech32 address
+   * @returns an Address object
+   */
   private buildAddressFromBech32Address(address: string) {
     let pubKeyHash = undefined;
     let stakeKeyHash = undefined;

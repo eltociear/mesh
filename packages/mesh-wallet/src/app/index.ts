@@ -107,25 +107,63 @@ export class AppWallet implements ISigner, ISubmitter {
     return [];
   }
 
+  /**
+   * Get an enterprise address owned by the wallet with given parameters.
+   *
+   * @param accountIndex account index (default: 0)
+   * @param keyIndex key index (default: 0)
+   * @returns enterprise address
+   */
   getEnterpriseAddress(accountIndex = 0, keyIndex = 0): string {
     const account = this._wallet.getAccount(accountIndex, keyIndex);
     return account.enterpriseAddressBech32;
   }
 
+  /**
+   * Get a payment address owned by the wallet with given parameters.
+   *
+   * @param accountIndex account index (default: 0)
+   * @param keyIndex key index (default: 0)
+   * @returns payment address
+   */
   getPaymentAddress(accountIndex = 0, keyIndex = 0): string {
     const account = this._wallet.getAccount(accountIndex, keyIndex);
     return account.baseAddressBech32;
   }
 
+  /**
+   * Get a reward address owned by the wallet with given parameters.
+   *
+   * This is used in transaction building.
+   *
+   * @param accountIndex account index (default: 0)
+   * @param keyIndex key index (default: 0)
+   * @returns reward address
+   */
   getRewardAddress(accountIndex = 0, keyIndex = 0): string {
     const account = this._wallet.getAccount(accountIndex, keyIndex);
     return account.rewardAddressBech32;
   }
 
+  /**
+   * A helper function to get the network ID.
+   *
+   * @returns network ID
+   */
   getNetworkId(): number {
     return this._wallet.getNetworkId();
   }
 
+  /**
+   * Get a used address of type Address owned by the wallet with given parameters.
+   *
+   * This is used in transaction building.
+   *
+   * @param accountIndex account index (default: 0)
+   * @param keyIndex key index (default: 0)
+   * @param addressType - the type of address to fetch UTXOs from (default: payment)
+   * @returns reward address
+   */
   getUsedAddress(
     accountIndex = 0,
     keyIndex = 0,
@@ -158,6 +196,14 @@ export class AppWallet implements ISigner, ISubmitter {
     return utxos.map((utxo) => toTxUnspentOutput(utxo));
   }
 
+  /**
+   * This endpoint utilizes the [CIP-8 - Message Signing](https://cips.cardano.org/cips/cip8/) to sign arbitrary data, to verify the data was signed by the owner of the private key.
+   *
+   * @param address - bech32 address to sign the data with
+   * @param payload - the data to be signed
+   * @param accountIndex account index (default: 0)
+   * @returns a signature
+   */
   signData(
     address: string,
     payload: string,
