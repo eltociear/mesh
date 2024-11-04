@@ -16,7 +16,6 @@ export function getContract(wallet: BrowserWallet | MeshWallet) {
     fetcher: blockchainProvider,
     wallet: wallet,
     networkId: 0,
-    version: 2,
   });
 
   return contract;

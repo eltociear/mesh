@@ -42,6 +42,16 @@ declare global {
   }
 }
 
+/**
+ * Browser Wallet provides a set of APIs to interact with the blockchain. This wallet is compatible with Mesh transaction builders.
+ *
+ * These wallets APIs are in accordance to CIP-30, which defines the API for dApps to communicate with the user's wallet. Additional utility functions provided for developers that are useful for building dApps.
+ * ```javascript
+ * import { BrowserWallet } from '@meshsdk/core';
+ *
+ * const wallet = await BrowserWallet.enable('eternl');
+ * ```
+ */
 export class BrowserWallet implements IInitiator, ISigner, ISubmitter {
   walletInstance: WalletInstance;
 
@@ -61,9 +71,7 @@ export class BrowserWallet implements IInitiator, ISigner, ISubmitter {
    * @returns a list of wallet names
    */
   static async getAvailableWallets({
-    metamask = {
-      network: "preprod",
-    },
+    metamask = undefined,
   }: {
     metamask?: {
       network: string;
@@ -73,8 +81,7 @@ export class BrowserWallet implements IInitiator, ISigner, ISubmitter {
 
     if (metamask) await checkIfMetamaskInstalled(metamask.network);
 
-    const wallets = BrowserWallet.getInstalledWallets();
-    return wallets;
+    return BrowserWallet.getInstalledWallets();
   }
 
   /**
@@ -253,10 +260,12 @@ export class BrowserWallet implements IInitiator, ISigner, ISubmitter {
     if (address === undefined) {
       address = (await this.getUsedAddresses())[0]!;
     }
+
+    if (address.startsWith("drep1")) {
+      return this._walletInstance.cip95!.signData(address, fromUTF8(payload));
+    }
+
     const signerAddress = toAddress(address).toBytes().toString();
-
-    // todo TW process this witness set and return DataSignature correctly
-
     return this._walletInstance.signData(signerAddress, fromUTF8(payload));
   }
 
