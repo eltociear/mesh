@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import type { Wallet } from "@meshsdk/common";
+import type { WalletInfo } from "@meshsdk/common";
 import { BrowserWallet } from "@meshsdk/wallet";
 
 export const useWalletList = ({
@@ -10,7 +10,7 @@ export const useWalletList = ({
     network: string;
   };
 } = {}) => {
-  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [wallets, setWallets] = useState<WalletInfo[]>([]);
   useEffect(() => {
     async function get() {
       setWallets(await BrowserWallet.getAvailableWallets({ metamask }));

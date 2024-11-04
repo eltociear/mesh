@@ -10,7 +10,7 @@ import {
   POLICY_ID_LENGTH,
   resolveFingerprint,
   UTxO,
-  Wallet,
+  WalletInfo,
 } from "@meshsdk/common";
 import { csl } from "@meshsdk/core-csl"; // todo: need to replace CST
 import {
@@ -76,7 +76,7 @@ export class BrowserWallet implements IInitiator, ISigner, ISubmitter {
     metamask?: {
       network: string;
     };
-  } = {}): Promise<Wallet[]> {
+  } = {}): Promise<WalletInfo[]> {
     if (window === undefined) return [];
 
     if (metamask) await checkIfMetamaskInstalled(metamask.network);
@@ -92,11 +92,11 @@ export class BrowserWallet implements IInitiator, ISigner, ISubmitter {
    *
    * @returns a list of wallet names
    */
-  static getInstalledWallets(): Wallet[] {
+  static getInstalledWallets(): WalletInfo[] {
     if (window === undefined) return [];
     if (window.cardano === undefined) return [];
 
-    let wallets: Wallet[] = [];
+    let wallets: WalletInfo[] = [];
     for (const key in window.cardano) {
       try {
         const _wallet = window.cardano[key];

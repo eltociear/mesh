@@ -1,10 +1,10 @@
 import { createContext, useCallback, useState } from "react";
 
-import { BrowserWallet, MeshWallet } from "@meshsdk/wallet";
+import { BrowserWallet, MeshWallet, Wallet } from "@meshsdk/wallet";
 
 interface WalletContext {
   hasConnectedWallet: boolean;
-  connectedWalletInstance: BrowserWallet | MeshWallet;
+  connectedWalletInstance: Wallet;
   connectedWalletName: string;
   connectingWallet: boolean;
   connectWallet?: (walletName: string, extensions?: number[]) => Promise<void>;
@@ -15,7 +15,7 @@ interface WalletContext {
 
 const INITIAL_STATE = {
   walletName: "",
-  walletInstance: {} as BrowserWallet | MeshWallet,
+  walletInstance: {} as Wallet,
 };
 
 export const useWalletStore = () => {
@@ -23,9 +23,8 @@ export const useWalletStore = () => {
 
   const [connectingWallet, setConnectingWallet] = useState<boolean>(false);
 
-  const [connectedWalletInstance, setConnectedWalletInstance] = useState<
-    BrowserWallet | MeshWallet
-  >(INITIAL_STATE.walletInstance);
+  const [connectedWalletInstance, setConnectedWalletInstance] =
+    useState<Wallet>(INITIAL_STATE.walletInstance);
 
   const [connectedWalletName, setConnectedWalletName] = useState<string>(
     INITIAL_STATE.walletName,

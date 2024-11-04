@@ -1,4 +1,4 @@
-import { Wallet } from "@meshsdk/common";
+import { WalletInfo } from "@meshsdk/common";
 import { useLovelace } from "../hooks";
 
 import { ChevronDown } from "./chevron-down";
@@ -12,7 +12,7 @@ export const WalletBalance = ({
   connected: boolean;
   connecting: boolean;
   label: string;
-  wallet: Wallet | undefined;
+  wallet: WalletInfo | undefined;
 }) => {
   const lovelace = useLovelace();
 

@@ -19,6 +19,6 @@ export * from "./relay";
 export * from "./token";
 export * from "./transaction-info";
 export * from "./utxo";
-export * from "./wallet";
+export * from "./wallet-info";
 export * from "./transaction-builder";
 export * from "./deserialized";

@@ -1,7 +1,7 @@
 import { initNufiDappCardanoSdk } from "@nufi/dapp-client-cardano";
 import publicNufiCoreSdk from "@nufi/dapp-client-core";
 
-import { Wallet } from "@meshsdk/common";
+import { WalletInfo } from "@meshsdk/common";
 
 import { nufiSnap } from "../types/nufisnap";
 
@@ -14,7 +14,7 @@ const nufiDomain: { [key: string]: string } = {
 
 export async function checkIfMetamaskInstalled(
   network = "preprod",
-): Promise<Wallet | undefined> {
+): Promise<WalletInfo | undefined> {
   try {
     const _nufiCoreSdk = (publicNufiCoreSdk as any).default;
 

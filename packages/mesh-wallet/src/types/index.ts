@@ -1,5 +1,7 @@
 import { DataSignature } from "@meshsdk/common";
 import { Ed25519PublicKeyHex } from "@meshsdk/core-cst";
+import { BrowserWallet } from "../browser";
+import { MeshWallet } from "../mesh";
 
 export type Cardano = {
   [key: string]: {
@@ -53,3 +55,5 @@ type ExperimentalFeatures = {
 };
 
 export type GetAddressType = "enterprise" | "payment";
+
+export type Wallet = BrowserWallet | MeshWallet;
