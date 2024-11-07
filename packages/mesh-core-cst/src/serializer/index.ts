@@ -259,11 +259,6 @@ class CardanoSDKSerializerCore {
     TransactionOutput
   >();
 
-  private redeemerContext: Map<TransactionInput, Redeemer> = new Map<
-    TransactionInput,
-    Redeemer
-  >();
-
   private scriptsProvided: Set<Script> = new Set<Script>();
   private datumsProvided: Set<PlutusData> = new Set<PlutusData>();
   private usedLanguages: Record<PlutusLanguageVersion, boolean> = {
@@ -378,6 +373,7 @@ class CardanoSDKSerializerCore {
         case "Script":
           this.addScriptTxIn(
             currentTxIn as RequiredWith<ScriptTxIn, "txIn" | "scriptTxIn">,
+            i,
           );
           break;
         case "SimpleScript":
@@ -420,6 +416,7 @@ class CardanoSDKSerializerCore {
 
   private addScriptTxIn = (
     currentTxIn: RequiredWith<ScriptTxIn, "txIn" | "scriptTxIn">,
+    index: number,
   ) => {
     // we can add the input in first, and handle the script info after
     this.addTxIn({
@@ -497,23 +494,21 @@ class CardanoSDKSerializerCore {
 
       this.txBody.setReferenceInputs(referenceInputs);
     }
-    let cardanoTxIn = new TransactionInput(
-      TransactionId(currentTxIn.txIn.txHash),
-      BigInt(currentTxIn.txIn.txIndex),
-    );
-    // Keep track of all redeemers mapped to their inputs
-    // TODO: handle json / raw redeemer data
     let exUnits = currentTxIn.scriptTxIn.redeemer.exUnits;
 
-    this.redeemerContext.set(
-      cardanoTxIn,
+    // Add redeemers to witness set
+    let redeemers = this.txWitnessSet.redeemers() ?? Redeemers.fromCore([]);
+    let redeemersList = [...redeemers.values()];
+    redeemersList.push(
       new Redeemer(
         RedeemerTag.Spend,
-        BigInt(0),
+        BigInt(index),
         toPlutusData(currentTxIn.scriptTxIn.redeemer.data.content as Data), // TODO: handle json / raw datum
         new ExUnits(BigInt(exUnits.mem), BigInt(exUnits.steps)),
       ),
     );
+    redeemers.setValues(redeemersList);
+    this.txWitnessSet.setRedeemers(redeemers);
   };
 
   private addSimpleScriptTxIn = (
@@ -630,11 +625,11 @@ class CardanoSDKSerializerCore {
 
   private addAllMints = (mints: MintItem[]) => {
     for (let i = 0; i < mints.length; i++) {
-      this.addMint(mints[i]!);
+      this.addMint(mints[i]!, i);
     }
   };
 
-  private addMint = (mint: MintItem) => {
+  private addMint = (mint: MintItem, index: number) => {
     const currentMint: TokenMap = this.txBody.mint() ?? new Map();
 
     const mintAssetId = mint.policyId + mint.assetName;
@@ -678,6 +673,26 @@ class CardanoSDKSerializerCore {
           "A script source for a plutus mint was not plutus script somehow",
         );
       }
+      if (!mint.redeemer) {
+        throw new Error("A redeemer was not provided for a plutus mint");
+      }
+      // Add mint redeemer to witness set
+      let redeemers = this.txWitnessSet.redeemers() ?? Redeemers.fromCore([]);
+      let redeemersList = [...redeemers.values()];
+      redeemersList.push(
+        new Redeemer(
+          RedeemerTag.Mint,
+          BigInt(index),
+          toPlutusData(mint.redeemer.data.content as Data), // TODO: handle json / raw datum
+          new ExUnits(
+            BigInt(mint.redeemer.exUnits.mem),
+            BigInt(mint.redeemer.exUnits.steps),
+          ),
+        ),
+      );
+      redeemers.setValues(redeemersList);
+      this.txWitnessSet.setRedeemers(redeemers);
+
       if (plutusScriptSource.type === "Provided") {
         switch (plutusScriptSource.script.version) {
           case "V1":
@@ -784,24 +799,6 @@ class CardanoSDKSerializerCore {
 
   private buildWitnessSet = () => {
     const inputs = this.txBody.inputs();
-    // Search through the inputs, and set each redeemer index to the correct one
-    for (let i = 0; i < inputs.size(); i += 1) {
-      const input = inputs.values().at(i);
-      if (input) {
-        let redeemer = this.redeemerContext.get(input);
-        if (redeemer) {
-          redeemer.setIndex(BigInt(i));
-        }
-      }
-    }
-    // Add redeemers to tx witness set
-    let redeemers = this.txWitnessSet.redeemers() ?? Redeemers.fromCore([]);
-    let redeemersList = [...redeemers.values()];
-    this.redeemerContext.forEach((redeemer) => {
-      redeemersList.push(redeemer);
-    });
-    redeemers.setValues(redeemersList);
-    this.txWitnessSet.setRedeemers(redeemers);
 
     // Add provided scripts to tx witness set
     let nativeScripts =
@@ -850,11 +847,11 @@ class CardanoSDKSerializerCore {
       this.txWitnessSet.plutusData() ??
       Serialization.CborSet.fromCore([], PlutusData.fromCore);
 
+    let datumsList = [...datums.values()];
     this.datumsProvided.forEach((datum) => {
-      let datumsList = [...datums.values()];
       datumsList.push(datum);
-      datums.setValues(datumsList);
     });
+    datums.setValues(datumsList);
     this.txWitnessSet.setPlutusData(datums);
 
     // After building tx witness set, we must hash it with the cost models
@@ -879,6 +876,7 @@ class CardanoSDKSerializerCore {
     if (this.usedLanguages[PlutusLanguageVersion.V3]) {
       costModels.insert(costModelV3);
     }
+    const redeemers = this.txWitnessSet.redeemers() ?? Redeemers.fromCore([]);
     let scriptDataHash = hashScriptData(
       costModels,
       redeemers.size() > 0 ? [...redeemers.values()] : undefined,
